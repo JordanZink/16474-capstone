@@ -1,0 +1,217 @@
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+
+the orientation of the kiwi drive is such that the side opposite the battery is
+the front. the the wheel on that side is the north wheel. in clockwise order
+from above, the wheels are north, south west, and south east.
+
+*/
+
+static const int PIN_WHEEL_NORTH = 3;
+static const int PIN_WHEEL_SOUTH_WEST = 5;
+static const int PIN_WHEEL_SOUTH_EAST = 6;
+
+static const int PIN_JOYSTICK_X = 1;
+static const int PIN_JOYSTICK_Y = 0;
+
+/*
+
+currently assuming the interval represents both negative and positive. so
+halfway between min and max indicates no movement, below that is negative,
+and above that is positive
+
+*/
+
+//red=330,80
+//orange=445,190
+//green=515,250
+
+//static const int WHEEL_VALUE_MIN = 256;//128 - 128 / 4;
+//static const int WHEEL_VALUE_MAX = 512;//(255 - 128) / 4 + 128;
+static const int WHEEL_POWER_FULL_REVERSE = 190 - (190 - 80) / 5; //80; //330;
+static const int WHEEL_POWER_NO_MOVEMENT = 190; //445;
+static const int WHEEL_POWER_FULL_FORWARD = 190 + (250 - 190) / 5; //250; //515;
+
+static const int JOYSTICK_VALUE_MIN = 0;
+static const int JOYSTICK_VALUE_MAX = 1023;
+
+//100 implies the entire thing is dead
+static const int JOYSTICK_DEAD_ZONE_PERCENT = 10;
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+static inline int mapFloat(float val, float loIn, float hiIn, int loOut, int hiOut) {
+  float inRange = hiIn - loIn;
+  int outRange = hiOut - loOut;
+  return (int) (loOut + (((val - loIn) / inRange) * outRange));
+}
+
+class Vector {
+ 
+private:
+  float x;
+  float y;
+  
+public:
+  
+  Vector(float xIn, float yIn) {
+    x = xIn;
+    y = yIn;
+  }
+  
+  void getComponentsFloat(float &xIn, float &yIn) {
+    xIn = x;
+    yIn = y;
+  }
+  
+  void getComponentsInt(int &xIn, int &yIn, int rangeLo, int rangeHi) {
+    float curMag = getMagnitude();
+    xIn = mapFloat(x, -curMag, curMag, rangeLo, rangeHi);
+    yIn = mapFloat(y, -curMag, curMag, rangeLo, rangeHi);
+  }
+  
+  float getMagnitude() {
+    return sqrt((x * x) + (y * y));
+  }  
+  
+  void setMagnitude(float desiredMag) {
+    float curMag = getMagnitude();
+    x = x / curMag * desiredMag;
+    y = y / curMag * desiredMag;
+  }
+  
+  void normalize() {
+    setMagnitude(1.0f);
+  }
+  
+  //TODO things like add
+  
+};
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+void setup() {
+  pinMode(PIN_WHEEL_NORTH, OUTPUT);
+  pinMode(PIN_WHEEL_SOUTH_WEST, OUTPUT);
+  pinMode(PIN_WHEEL_SOUTH_EAST, OUTPUT);
+  Serial.begin(9600);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+struct WheelPower {
+  int north;
+  int southWest;
+  int southEast;
+};
+
+long applyDeadZone(long x, int lo, int hi, long deadValue) {
+  if (lo < x && x < hi) {
+    return deadValue;
+  } else {
+    return x;
+  }
+}
+
+Vecotr readJoystick() {
+  long x = analogRead(PIN_JOYSTICK_X);
+  long y = analogRead(PIN_JOYSTICK_Y);
+  const int symmetricRangeForDeadzone = 256;
+  x = map(x, JOYSTICK_VALUE_MIN, JOYSTICK_VALUE_MAX, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
+  y = map(y, JOYSTICK_VALUE_MIN, JOYSTICK_VALUE_MAX, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
+  //apply deadzone
+  const int deadZone = symmetricRangeForDeadzone * JOYSTICK_DEAD_ZONE_PERCENT / 100;
+  x = applyDeadZone(x, -deadZone, deadZone, 0);
+  y = applyDeadZone(y, -deadZone, deadZone, 0);
+  //scale if magnitude is too big
+  long dist = sqrt(x * x + y * y);
+  long maxMagnitude = symmetricRangeForDeadzone;
+  if (dist > maxMagnitude) {
+    x = x * maxMagnitude / dist;
+    y = y * maxMagnitude / dist;
+  }
+  return Vector(x, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
+}
+
+int convertValueInLinearRangeToMotorPower(int val, int rangeMin, int rangeMax) {
+  int rangeMiddle = (rangeMin + rangeMax) / 2;
+  if (val < rangeMiddle) {
+    //reverse
+    long diff = val - rangeMin;
+    int dist = rangeMiddle - rangeMin;
+    return WHEEL_POWER_FULL_REVERSE +
+        (WHEEL_POWER_NO_MOVEMENT - WHEEL_POWER_FULL_REVERSE) * diff / dist;
+  } else if (val > rangeMiddle) {
+    //forward
+    long diff = val - rangeMiddle;
+    int dist = rangeMax - rangeMiddle;
+    return WHEEL_POWER_NO_MOVEMENT +
+        (WHEEL_POWER_FULL_FORWARD - WHEEL_POWER_NO_MOVEMENT) * diff / dist;
+  } else {
+    //in the middle, no motion
+    return WHEEL_POWER_NO_MOVEMENT;
+  }
+}
+
+//http://stackoverflow.com/questions/3748037/how-to-control-a-kiwi-drive-robot
+
+void convertJoystickReadingToWheelPower(struct JoystickReading* jr,
+                                        struct WheelPower* wp) {
+  //const int actualWheelValueMax = WHEEL_VALUE_MAX; // ((int) (WHEEL_VALUE_MAX / ((sqrt(3) + 1) / 2)));
+  int xForWheels = jr->x;
+  int yForWheels = jr->y;
+  wp->north = xForWheels;
+  int xComponentForSouth = -xForWheels / 2;
+  int yComponentForSouth = -((int) (sqrt(3) / 2 * yForWheels));
+  wp->southWest = xComponentForSouth - yComponentForSouth;
+  wp->southEast = xComponentForSouth + yComponentForSouth;
+  wp->north = convertValueInLinearRangeToMotorPower(wp->north, -MAX_FOR_SYMMETRIC_RANGE, MAX_FOR_SYMMETRIC_RANGE);
+  wp->southWest = convertValueInLinearRangeToMotorPower(wp->southWest, -MAX_FOR_SYMMETRIC_RANGE, MAX_FOR_SYMMETRIC_RANGE);
+  wp->southEast = convertValueInLinearRangeToMotorPower(wp->southEast, -MAX_FOR_SYMMETRIC_RANGE, MAX_FOR_SYMMETRIC_RANGE);
+  /*
+  wp->north = map(wp->north, -maxForCalc, maxForCalc,
+      WHEEL_VALUE_MIN, actualWheelValueMax);
+  wp->southWest = map(wp->southWest, -maxForCalc, maxForCalc,
+      WHEEL_VALUE_MIN, actualWheelValueMax);
+  wp->southEast = map(wp->southEast, -maxForCalc, maxForCalc,
+      WHEEL_VALUE_MIN, actualWheelValueMax);
+  */
+}
+
+void sendWheelPower(struct WheelPower* wp) {
+  /**/
+  Serial.println("test");
+  Serial.println(wp->north);
+  Serial.println(wp->southWest);
+  Serial.println(wp->southEast);
+  /**/
+  /**/
+  analogWrite(PIN_WHEEL_NORTH, wp->north);
+  analogWrite(PIN_WHEEL_SOUTH_WEST, wp->southWest);
+  analogWrite(PIN_WHEEL_SOUTH_EAST, wp->southEast);
+  /**/
+}
+
+void loop() {
+  Vector joystickVector;
+  struct WheelPower wp;
+  
+  Vector joystickVector = readJoystick(joystickVector);
+  convertJoystickReadingToWheelPower(&jr, &wp);
+  sendWheelPower(&wp);
+  //delay(1000);
+  delay(50);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
