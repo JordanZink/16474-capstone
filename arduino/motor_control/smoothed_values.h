@@ -16,7 +16,7 @@ public:
     curI = 0;
   }
   
-  SmoothedValues(int nIn) {
+  SmoothedValues(int nIn, int defaultVal) {
     //must be at least 3
     if (nIn < 3) {
       nIn = 3;
@@ -24,7 +24,7 @@ public:
     n = nIn;
     values = new int[n];
     for (int i = 0; i < n; i++) {
-      values[i] = 0;
+      values[i] = defaultVal;
     }
     curI = 0;
   }
