@@ -191,8 +191,8 @@ int convertValueInLinearRangeToMotorPower(int val, int rangeMin, int rangeMax) {
 //http://stackoverflow.com/questions/3748037/how-to-control-a-kiwi-drive-robot
 
 //assumes the vector has a magnitude of 1 for full power
-void convertJoystickReadingToWheelPower(Vector &joystickVector,
-                                        struct WheelPower* wp) {
+void convertMotorVectorToWheelPower(Vector &joystickVector,
+                                    struct WheelPower* wp) {
   //const int actualWheelValueMax = WHEEL_VALUE_MAX; // ((int) (WHEEL_VALUE_MAX / ((sqrt(3) + 1) / 2)));
   if (joystickVector.getMagnitude() > 1.0f) {
     joystickVector.normalize();
@@ -228,11 +228,7 @@ void sendWheelPower(struct WheelPower* wp) {
   analogWrite(PIN_WHEEL_SOUTH_EAST, wheelSouthEast);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-void JoystickControlLoop() {
+void joystickControlLoop() {
   struct WheelPower wp;
   
   Vector joystickVector = readJoystick();
@@ -241,14 +237,81 @@ void JoystickControlLoop() {
   if (joystickVector.getMagnitude() > 1.0f) {
     joystickVector.normalize();
   }
-  convertJoystickReadingToWheelPower(joystickVector, &wp);
+  convertMotorVectorToWheelPower(joystickVector, &wp);
   sendWheelPower(&wp);
   
   delay(2);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+static const int ARDUINO_ACKNOWLEDGE_SERIAL_CODE = 201;
+static const int ARDUINO_ERROR_SERIAL_CODE = 212;
+
+static const int MOTOR_CONTROL_SERIAL_CODE = 199;
+
+static Vector motorControlVector(0.0f, 0.0f);
+static bool useIr = true;
+
+int readIntBlocking() {
+  while (Serial.available() == 0) {}
+  return Serial.read();
+}
+
+void receiveMotorControlOverSerial(Vector &vec) {
+  //for right now, it will just receive two bytes, one for x, the other for y. then the values are mapped to [-1, 1] floats
+  int xRaw = readIntBlocking();
+  int yRaw = readIntBlocking();
+  float x = (((float) xRaw) - 127) / 128;
+  float y = (((float) xRaw) - 127) / 128;
+  vec = Vector(x, y);
+  Serial.write(ARDUINO_ACKNOWLEDGE_SERIAL_CODE);
+}
+
+void raspiControlLoop() {
+  if (Serial.available() > 0) {
+    //there are things to be read; process it
+    int commandCode = Serial.read();
+    switch (commandCode) {
+      case MOTOR_CONTROL_SERIAL_CODE:
+        {
+        Vector newMotorVector(0.0f, 0.0f);
+        receiveMotorControlOverSerial(newMotorVector);
+        motorControlVector = newMotorVector;
+        }
+        break;
+      //more would go here
+      default:
+        Serial.write(ARDUINO_ERROR_SERIAL_CODE);
+        break;
+    }
+  } else {
+    //nothing new to be read, but need to check if there is anything that should be done
+    
+    //watchdogs and such would go here; for now just move
+    Vector curMotorVector(motorControlVector);
+    if (useIr == true) {
+      Vector irVector = getIrVector();
+      curMotorVector.add(irVector);
+    }
+    if (curMotorVector.getMagnitude() > 1.0f) {
+      curMotorVector.normalize();
+    }
+    struct WheelPower wp;
+    convertMotorVectorToWheelPower(curMotorVector, &wp);
+    sendWheelPower(&wp);
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
 void loop() {
-  JoystickControlLoop();
+  //joystickControlLoop();
+  raspiControlLoop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
