@@ -49,14 +49,14 @@ static const int JOYSTICK_DEAD_ZONE_PERCENT = 10;
 
 static const int NUM_VALUES_FOR_WHEEL_SMOOTHED_VALUES = 21;
 
-static SmoothedValues wheelNorthSmoothed(NUM_VALUES_FOR_WHEEL_SMOOTHED_VALUES);
-static SmoothedValues wheelSouthWestSmoothed(NUM_VALUES_FOR_WHEEL_SMOOTHED_VALUES);
-static SmoothedValues wheelSouthEastSmoothed(NUM_VALUES_FOR_WHEEL_SMOOTHED_VALUES);
+static SmoothedValues wheelNorthSmoothed(NUM_VALUES_FOR_WHEEL_SMOOTHED_VALUES, WHEEL_POWER_NO_MOVEMENT);
+static SmoothedValues wheelSouthWestSmoothed(NUM_VALUES_FOR_WHEEL_SMOOTHED_VALUES, WHEEL_POWER_NO_MOVEMENT);
+static SmoothedValues wheelSouthEastSmoothed(NUM_VALUES_FOR_WHEEL_SMOOTHED_VALUES, WHEEL_POWER_NO_MOVEMENT);
 
 static const int NUM_VALUES_FOR_JOYSTICK_SMOOTHED_VALUES = 39;
 
-static SmoothedValues joystickXSmoothed(NUM_VALUES_FOR_JOYSTICK_SMOOTHED_VALUES);
-static SmoothedValues joystickYSmoothed(NUM_VALUES_FOR_JOYSTICK_SMOOTHED_VALUES);
+static SmoothedValues joystickXSmoothed(NUM_VALUES_FOR_JOYSTICK_SMOOTHED_VALUES, 0);
+static SmoothedValues joystickYSmoothed(NUM_VALUES_FOR_JOYSTICK_SMOOTHED_VALUES, 0);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -91,12 +91,12 @@ static const double MAX_IR_REPULSION = 0.85;
 static const int NUM_VALUES_FOR_IR_SMOOTHED_VALUES = 50;
 
 static SmoothedValues irSmoothedValues[NUM_IR_SENSORS] = {
-  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES),
-  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES),
-  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES),
-  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES),
-  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES),
-  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES),
+  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES, IR_VALUE_MAX),
+  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES, IR_VALUE_MAX),
+  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES, IR_VALUE_MAX),
+  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES, IR_VALUE_MAX),
+  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES, IR_VALUE_MAX),
+  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES, IR_VALUE_MAX),
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -165,7 +165,7 @@ Vector getIrVector() {
     int val = irSmoothedValues[i].getSmoothedValue();
     val = constrain(val, IR_VALUE_MIN, IR_VALUE_MAX);
     float mag = ((pow(val, 2) - pow(IR_VALUE_MIN, 2)) / pow(IR_VALUE_MAX - IR_VALUE_MIN, 2)) * MAX_IR_REPULSION; //quadratic
-    //float mag = ((((float) val) - IR_VALUE_MIN) / (IR_VALUE_MAX - IR_VALUE_MIN)) * MAX_IR_REPULSION;
+    //float mag = ((((float) val) - IR_VALUE_MIN) / (IR_VALUE_MAX - IR_VALUE_MIN)) * MAX_IR_REPULSION; //linear
     Vector curVector(IR_VECTORS[i]);
     curVector.normalize();
     curVector.mult(mag);
@@ -179,21 +179,9 @@ int convertValueInLinearRangeToMotorPower(int val, int rangeMin, int rangeMax) {
   if (val < rangeMiddle) {
     //reverse
     return map(val, rangeMin, rangeMiddle, WHEEL_POWER_FULL_REVERSE, WHEEL_POWER_NO_MOVEMENT);
-    /*
-    long diff = val - rangeMin;
-    int dist = rangeMiddle - rangeMin;
-    return WHEEL_POWER_FULL_REVERSE +
-        (WHEEL_POWER_NO_MOVEMENT - WHEEL_POWER_FULL_REVERSE) * diff / dist;
-    */
   } else if (val > rangeMiddle) {
     //forward
     return map(val, rangeMiddle, rangeMax, WHEEL_POWER_NO_MOVEMENT, WHEEL_POWER_FULL_FORWARD);
-    /*
-    long diff = val - rangeMiddle;
-    int dist = rangeMax - rangeMiddle;
-    return WHEEL_POWER_NO_MOVEMENT +
-        (WHEEL_POWER_FULL_FORWARD - WHEEL_POWER_NO_MOVEMENT) * diff / dist;
-    */
   } else {
     //in the middle, no motion
     return WHEEL_POWER_NO_MOVEMENT;
@@ -229,12 +217,6 @@ void convertJoystickReadingToWheelPower(Vector &joystickVector,
 }
 
 void sendWheelPower(struct WheelPower* wp) {
-  /*
-  Serial.println("test");
-  Serial.println(wp->north);
-  Serial.println(wp->southWest);
-  Serial.println(wp->southEast);
-  */
   wheelNorthSmoothed.addValue(wp->north);
   wheelSouthWestSmoothed.addValue(wp->southWest);
   wheelSouthEastSmoothed.addValue(wp->southEast);
@@ -246,7 +228,11 @@ void sendWheelPower(struct WheelPower* wp) {
   analogWrite(PIN_WHEEL_SOUTH_EAST, wheelSouthEast);
 }
 
-void loop() {
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+void JoystickControlLoop() {
   struct WheelPower wp;
   
   Vector joystickVector = readJoystick();
@@ -257,8 +243,12 @@ void loop() {
   }
   convertJoystickReadingToWheelPower(joystickVector, &wp);
   sendWheelPower(&wp);
-  //delay(1000);
+  
   delay(2);
+}
+
+void loop() {
+  JoystickControlLoop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
