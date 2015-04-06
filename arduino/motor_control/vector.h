@@ -15,6 +15,11 @@ private:
   
 public:
   
+  Vector() {
+    x = 0.0f;
+    y = 0.0f;
+  }
+    
   Vector(float xIn, float yIn) {
     x = xIn;
     y = yIn;

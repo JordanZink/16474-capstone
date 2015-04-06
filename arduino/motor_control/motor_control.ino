@@ -16,9 +16,9 @@ the x axis goes away from the robot to the west, not east.
 
 */
 
-static const int PIN_WHEEL_NORTH = 6;
-static const int PIN_WHEEL_SOUTH_WEST = 5;
-static const int PIN_WHEEL_SOUTH_EAST = 3;
+static const int PIN_WHEEL_NORTH = 3;
+static const int PIN_WHEEL_SOUTH_WEST = 6;
+static const int PIN_WHEEL_SOUTH_EAST = 5;
 
 static const int PIN_JOYSTICK_X = 0;
 static const int PIN_JOYSTICK_Y = 1;
@@ -120,6 +120,11 @@ struct WheelPower {
   int southEast;
 };
 
+struct MovementControl {
+  Vector xyVector;
+  float rotation;
+};
+
 long applyDeadZone(long x, int lo, int hi, long deadValue) {
   if (lo < x && x < hi) {
     return deadValue;
@@ -128,7 +133,7 @@ long applyDeadZone(long x, int lo, int hi, long deadValue) {
   }
 }
 
-Vector readJoystick() {
+void readJoystick(struct MovementControl &movementControl) {
   int rawX = analogRead(PIN_JOYSTICK_X);
   int rawY = analogRead(PIN_JOYSTICK_Y);
   joystickXSmoothed.addValue(rawX);
@@ -142,6 +147,8 @@ Vector readJoystick() {
   y = (pow(y, 2) / symmetricRangeForDeadzone) * (y < 0 ? -1 : 1);
   //flip x (cuz why not)
   x *= -1;
+  //flip y (cuz why not)
+  y *= -1;
   //apply deadzone
   const int deadZone = symmetricRangeForDeadzone * JOYSTICK_DEAD_ZONE_PERCENT / 100;
   x = applyDeadZone(x, -deadZone, deadZone, 0);
@@ -153,11 +160,17 @@ Vector readJoystick() {
     x = x * maxMagnitude / dist;
     y = y * maxMagnitude / dist;
   }
-  return Vector(x, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
+  /*
+  movementControl.xyVector = Vector(x, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
+  movementControl.rotation = 0.0f;
+  */
+  movementControl.xyVector = Vector(0, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
+  movementControl.rotation = ((float) x) / symmetricRangeForDeadzone;
 }
 
 Vector getIrVector() {
   Vector resultVector(0.0f, 0.0f);
+  /*
   for (int i = 0; i < NUM_IR_SENSORS; i++) {
     if (i == 3) {continue;} //because that sensor is broken right now
     int rawVal = analogRead(IR_PINS[i]);
@@ -171,6 +184,7 @@ Vector getIrVector() {
     curVector.mult(mag);
     resultVector.add(curVector);
   }
+  */
   return resultVector;
 }
 
@@ -191,35 +205,42 @@ int convertValueInLinearRangeToMotorPower(int val, int rangeMin, int rangeMax) {
 //http://stackoverflow.com/questions/3748037/how-to-control-a-kiwi-drive-robot
 
 //assumes the vector has a magnitude of 1 for full power
-void convertMotorVectorToWheelPower(Vector &joystickVector,
-                                    struct WheelPower* wp) {
+void convertMotorVectorToWheelPower(struct MovementControl &movementControl,
+                                    struct WheelPower &wp) {
   //const int actualWheelValueMax = WHEEL_VALUE_MAX; // ((int) (WHEEL_VALUE_MAX / ((sqrt(3) + 1) / 2)));
-  if (joystickVector.getMagnitude() > 1.0f) {
-    joystickVector.normalize();
+  Vector xyVector = movementControl.xyVector;
+  float rotation = movementControl.rotation;
+  if (xyVector.getMagnitude() > 1.0f) {
+    xyVector.normalize();
   }
   const int symmetricRangeForCalc = 256;
   int xForWheels, yForWheels;
-  joystickVector.mult(symmetricRangeForCalc);
-  joystickVector.getComponentsInt(xForWheels, yForWheels);
-  wp->north = xForWheels;
+  xyVector.mult(symmetricRangeForCalc);
+  xyVector.getComponentsInt(xForWheels, yForWheels);
+  wp.north = xForWheels;
   int xComponentForSouth = -xForWheels / 2;
   int yComponentForSouth = -((int) (sqrt(3) / 2 * yForWheels));
-  wp->southWest = xComponentForSouth - yComponentForSouth;
-  wp->southEast = xComponentForSouth + yComponentForSouth;
+  wp.southWest = xComponentForSouth - yComponentForSouth;
+  wp.southEast = xComponentForSouth + yComponentForSouth;
   //for whatever reason, everything needs to be negated...
-  wp->north *= -1;
-  wp->southWest *= -1;
-  wp->southEast *= -1;
+  wp.north *= -1;
+  wp.southWest *= -1;
+  wp.southEast *= -1;
   //now, get them in the right range
-  wp->north = convertValueInLinearRangeToMotorPower(wp->north, -symmetricRangeForCalc, symmetricRangeForCalc);
-  wp->southWest = convertValueInLinearRangeToMotorPower(wp->southWest, -symmetricRangeForCalc, symmetricRangeForCalc);
-  wp->southEast = convertValueInLinearRangeToMotorPower(wp->southEast, -symmetricRangeForCalc, symmetricRangeForCalc);
+  wp.north = convertValueInLinearRangeToMotorPower(wp.north, -symmetricRangeForCalc, symmetricRangeForCalc);
+  wp.southWest = convertValueInLinearRangeToMotorPower(wp.southWest, -symmetricRangeForCalc, symmetricRangeForCalc);
+  wp.southEast = convertValueInLinearRangeToMotorPower(wp.southEast, -symmetricRangeForCalc, symmetricRangeForCalc);
+  //THEN, APPLY ROTATION...I GUESS???
+  int rotationPower = ((int) (-10 * rotation));
+  wp.north += rotationPower;
+  wp.southWest += rotationPower;
+  wp.southEast += rotationPower;
 }
 
-void sendWheelPower(struct WheelPower* wp) {
-  wheelNorthSmoothed.addValue(wp->north);
-  wheelSouthWestSmoothed.addValue(wp->southWest);
-  wheelSouthEastSmoothed.addValue(wp->southEast);
+void sendWheelPower(struct WheelPower &wp) {
+  wheelNorthSmoothed.addValue(wp.north);
+  wheelSouthWestSmoothed.addValue(wp.southWest);
+  wheelSouthEastSmoothed.addValue(wp.southEast);
   int wheelNorth = wheelNorthSmoothed.getSmoothedValue();
   int wheelSouthWest = wheelSouthWestSmoothed.getSmoothedValue();
   int wheelSouthEast = wheelSouthEastSmoothed.getSmoothedValue();
@@ -229,16 +250,17 @@ void sendWheelPower(struct WheelPower* wp) {
 }
 
 void joystickControlLoop() {
+  struct MovementControl movementControl;
   struct WheelPower wp;
   
-  Vector joystickVector = readJoystick();
+  readJoystick(movementControl);
   Vector irVector = getIrVector();
-  joystickVector.add(irVector);
-  if (joystickVector.getMagnitude() > 1.0f) {
-    joystickVector.normalize();
+  movementControl.xyVector.add(irVector);
+  if (movementControl.xyVector.getMagnitude() > 1.0f) {
+    movementControl.xyVector.normalize();
   }
-  convertMotorVectorToWheelPower(joystickVector, &wp);
-  sendWheelPower(&wp);
+  convertMotorVectorToWheelPower(movementControl, wp);
+  sendWheelPower(wp);
   
   delay(2);
 }
@@ -252,7 +274,7 @@ static const int ARDUINO_ERROR_SERIAL_CODE = 212;
 
 static const int MOTOR_CONTROL_SERIAL_CODE = 199;
 
-static Vector motorControlVector(0.0f, 0.0f);
+static struct MovementControl lastCommandedMovementControl;
 static bool useIr = true;
 
 int readIntBlocking() {
@@ -260,14 +282,17 @@ int readIntBlocking() {
   return Serial.read();
 }
 
-void receiveMotorControlOverSerial(Vector &vec) {
-  //for right now, it will just receive two bytes, one for x, the other for y. then the values are mapped to [-1, 1] floats
+void receiveMotorControlOverSerial(struct MovementControl &movementControl) {
+  //for right now, it will just receive two bytes, one for x, one for y, and one for rotation. then the values are mapped to [-1, 1] floats
   int xRaw = readIntBlocking();
   int yRaw = readIntBlocking();
+  int rotationRaw = readIntBlocking();
+  Serial.write(ARDUINO_ACKNOWLEDGE_SERIAL_CODE);
   float x = (((float) xRaw) - 127) / 128;
   float y = (((float) xRaw) - 127) / 128;
-  vec = Vector(x, y);
-  Serial.write(ARDUINO_ACKNOWLEDGE_SERIAL_CODE);
+  float rotation = (((float) rotationRaw) - 127) / 128;
+  movementControl.xyVector = Vector(x, y);
+  movementControl.rotation = rotation;
 }
 
 void raspiControlLoop() {
@@ -277,9 +302,7 @@ void raspiControlLoop() {
     switch (commandCode) {
       case MOTOR_CONTROL_SERIAL_CODE:
         {
-        Vector newMotorVector(0.0f, 0.0f);
-        receiveMotorControlOverSerial(newMotorVector);
-        motorControlVector = newMotorVector;
+        receiveMotorControlOverSerial(lastCommandedMovementControl);
         }
         break;
       //more would go here
@@ -291,17 +314,19 @@ void raspiControlLoop() {
     //nothing new to be read, but need to check if there is anything that should be done
     
     //watchdogs and such would go here; for now just move
-    Vector curMotorVector(motorControlVector);
+    struct MovementControl movementControl;
+    movementControl.xyVector = Vector(lastCommandedMovementControl.xyVector);
+    movementControl.rotation = lastCommandedMovementControl.rotation;
     if (useIr == true) {
       Vector irVector = getIrVector();
-      curMotorVector.add(irVector);
+      movementControl.xyVector.add(irVector);
     }
-    if (curMotorVector.getMagnitude() > 1.0f) {
-      curMotorVector.normalize();
+    if (movementControl.xyVector.getMagnitude() > 1.0f) {
+      movementControl.xyVector.normalize();
     }
     struct WheelPower wp;
-    convertMotorVectorToWheelPower(curMotorVector, &wp);
-    sendWheelPower(&wp);
+    convertMotorVectorToWheelPower(movementControl, wp);
+    sendWheelPower(wp);
   }
 }
 
@@ -310,8 +335,8 @@ void raspiControlLoop() {
 ////////////////////////////////////////////////////////////////////////////////
 
 void loop() {
-  //joystickControlLoop();
-  raspiControlLoop();
+  joystickControlLoop();
+  //raspiControlLoop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -25,9 +25,11 @@ class ArduinoComm(object):
     def motorVector(self, x, y, rotation, timeout):
         xByte = signedFloatToByte(x)
         yByte = signedFloatToByte(y)
+        rotationByte = signedFloatToByte(rotation)
         self.serial.write(chr(MOTOR_CONTROL_SERIAL_CODE))
         self.serial.write(chr(xByte))
         self.serial.write(chr(yByte))
+        self.serial.write(chr(rotationByte))
         response = self.serial.read()
         return response == chr(ARDUINO_ACKNOWLEDGE_SERIAL_CODE)
         
