@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
 			centroid_direction.at<double>(2,0) = 1.0;
 			cv::Mat cent_vec = K.inv()*centroid_direction;
 			cent_vec = cent_vec/cv::norm(cent_vec);
-			std::cout << "C: " << cent_vec.at<double>(0,0) << "," << cent_vec.at<double>(1,0) << "," << cent_vec.at<double>(2,0) << std::endl;
+			std::cout << "C: " << cent_vec.at<double>(0,0) << "," << cent_vec.at<double>(1,0) << "," << cent_vec.at<double>(2,0) << "," << depthMat.at<unsigned short>(crowd_centroid.y, crowd_centroid.x) << std::endl;
 		}
 
 #if DIS
@@ -125,9 +125,9 @@ int main(int argc, char **argv) {
 		cv::Mat lead_vec = K.inv()*leader_direction;
 		lead_vec = lead_vec/cv::norm(lead_vec);
 		if (predicted) {
-			std::cout << "P: " << lead_vec.at<double>(0,0) << "," << lead_vec.at<double>(1,0) << "," << lead_vec.at<double>(2,0) << std::endl;
+			std::cout << "P: " << lead_vec.at<double>(0,0) << "," << lead_vec.at<double>(1,0) << "," << lead_vec.at<double>(2,0) << "," << depthMat.at<unsigned short>(blob_centroid.y, blob_centroid.x)<< std::endl;
 		} else {
-			std::cout << "O: " << lead_vec.at<double>(0,0) << "," << lead_vec.at<double>(1,0) << "," << lead_vec.at<double>(2,0) << std::endl;
+			std::cout << "O: " << lead_vec.at<double>(0,0) << "," << lead_vec.at<double>(1,0) << "," << lead_vec.at<double>(2,0) << "," << depthMat.at<unsigned short>(blob_centroid.y, blob_centroid.x)<< std::endl;
 		}
 
 		char k = cv::waitKey(5);
