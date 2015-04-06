@@ -33,15 +33,15 @@ int main(int argc, char **argv) {
 #endif
 	device.startVideo();
 	device.startDepth();
-	cv::Mat Ki(3,3,CV_64F);
-	Ki.at<double>(0,0) = 517.05;
-	Ki.at<double>(1,1) = 517.02;
-	Ki.at<double>(0,2) = 324.18;
-	Ki.at<double>(1,2) = 262.17;
-	Ki.at<double>(2,2) = 1.0;
-	cv::Mat K1(3,3,CV_64F);
-	cv::Mat K2(3,3,CV_64F);
-	cv::Mat K3(3,3,CV_64F);
+	cv::Mat K = cv::Mat::zeros(3, 3, CV_64F);
+	K.at<double>(0,0) = 517.05;
+	K.at<double>(1,1) = 517.02;
+	K.at<double>(0,2) = 324.18;
+	K.at<double>(1,2) = 262.17;
+	K.at<double>(2,2) = 1.0;
+	cv::Mat K1 = cv::Mat::zeros(3, 3, CV_64F);
+	cv::Mat K2 = cv::Mat::zeros(3, 3, CV_64F);
+	cv::Mat K3 = cv::Mat::zeros(3, 3, CV_64F);
 	K1.at<double>(0,0) = 1;
 	K1.at<double>(1,1) = 1;
 	K1.at<double>(0,2) = -(SWIDTH/2);
@@ -55,8 +55,8 @@ int main(int argc, char **argv) {
 	K3.at<double>(0,2) = 320;
 	K3.at<double>(1,2) = 240;
 	K3.at<double>(2,2) = 1.0;
-	cv::Mat K(3,3,CV_64F);
-	K = Ki*K3*K2*K1;
+	cv::Mat scale_mat = cv::Mat::zeros(3, 3, CV_64F);
+	scale_mat = K3*K2*K1;
 
 
 
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 			centroid_direction.at<double>(0,0) = crowd_centroid.x;
 			centroid_direction.at<double>(1,0) = crowd_centroid.y;
 			centroid_direction.at<double>(2,0) = 1.0;
-			cv::Mat cent_vec = K.inv()*centroid_direction;
+			cv::Mat cent_vec = K.inv()*scale_mat*centroid_direction;
 			cent_vec = cent_vec/cv::norm(cent_vec);
 			std::cout << "C: " << cent_vec.at<double>(0,0) << "," << cent_vec.at<double>(1,0) << "," << cent_vec.at<double>(2,0) << "," << depthMat.at<unsigned short>(crowd_centroid.y, crowd_centroid.x) << std::endl;
 		}
@@ -117,12 +117,11 @@ int main(int argc, char **argv) {
 		cv::imshow("display", im_display);
 		cv::imshow("mask", im_mask);
 #endif
-
 		cv::Mat leader_direction(3,1,CV_64F);
 		leader_direction.at<double>(0,0) = blob_centroid.x;
 		leader_direction.at<double>(1,0) = blob_centroid.y;
 		leader_direction.at<double>(2,0) = 1.0;
-		cv::Mat lead_vec = K.inv()*leader_direction;
+		cv::Mat lead_vec = K.inv()*scale_mat*leader_direction;
 		lead_vec = lead_vec/cv::norm(lead_vec);
 		if (predicted) {
 			std::cout << "P: " << lead_vec.at<double>(0,0) << "," << lead_vec.at<double>(1,0) << "," << lead_vec.at<double>(2,0) << "," << depthMat.at<unsigned short>(blob_centroid.y, blob_centroid.x)<< std::endl;
