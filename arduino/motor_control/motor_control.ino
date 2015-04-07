@@ -252,7 +252,7 @@ void sendWheelPower(struct WheelPower &wp) {
 void joystickControlLoop() {
   struct MovementControl movementControl;
   struct WheelPower wp;
-  
+
   readJoystick(movementControl);
   Vector irVector = getIrVector();
   movementControl.xyVector.add(irVector);
@@ -261,7 +261,7 @@ void joystickControlLoop() {
   }
   convertMotorVectorToWheelPower(movementControl, wp);
   sendWheelPower(wp);
-  
+
   delay(2);
 }
 
@@ -289,7 +289,7 @@ void receiveMotorControlOverSerial(struct MovementControl &movementControl) {
   int rotationRaw = readIntBlocking();
   Serial.write(ARDUINO_ACKNOWLEDGE_SERIAL_CODE);
   float x = (((float) xRaw) - 127) / 128;
-  float y = (((float) xRaw) - 127) / 128;
+  float y = (((float) yRaw) - 127) / 128;
   float rotation = (((float) rotationRaw) - 127) / 128;
   movementControl.xyVector = Vector(x, y);
   movementControl.rotation = rotation;
@@ -312,7 +312,7 @@ void raspiControlLoop() {
     }
   } else {
     //nothing new to be read, but need to check if there is anything that should be done
-    
+
     //watchdogs and such would go here; for now just move
     struct MovementControl movementControl;
     movementControl.xyVector = Vector(lastCommandedMovementControl.xyVector);
