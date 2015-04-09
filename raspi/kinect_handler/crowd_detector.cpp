@@ -11,14 +11,9 @@ CrowdDetector::CrowdDetector(int min_faces_, int max_depth_, int scale_) : min_f
 
 }
 
-bool CrowdDetector::detectCrowd(const cv::Mat& depth, const cv::Mat rgb, cv::Point* centroid, std::vector<cv::Point>& ff) {
-	cv::Mat depthf;
-	depth.convertTo(depthf, CV_8UC1, 255.0/2048.0);
-	cv::Mat mask = depthf <= max_depth;
-	cv::Mat fg;
-	rgb.copyTo(fg, mask);
+bool CrowdDetector::detectCrowd(const cv::Mat rgb, cv::Point* centroid, std::vector<cv::Point>& ff) {
 	cv::Mat fg_gray;
-	cv::cvtColor(fg, fg_gray, CV_BGR2GRAY);
+	cv::cvtColor(rgb, fg_gray, CV_BGR2GRAY);
 	std::vector<cv::Rect> faces, profiles;
 	front_face_cascade.detectMultiScale(fg_gray, faces, 1.1, 2, CV_HAAR_SCALE_IMAGE, cv::Size(20/scale, 20/scale));
 	profile_face_cascade.detectMultiScale(fg_gray, profiles, 1.1, 2, CV_HAAR_SCALE_IMAGE, cv::Size(20/scale, 20/scale));

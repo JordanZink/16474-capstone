@@ -8,7 +8,7 @@ OBJS=$(subst .cpp,.o,$(SRCS))
 all: kinect_handler
 
 kinect_handler: $(OBJS)
-	g++ -O3 $(OBJS) -o kinect_handler $(LDLIBS)
+	g++ -g -O3 $(OBJS) -o kinect_handler $(LDLIBS)
 
 clean:
 	rm $(OBJS) kinect_handler

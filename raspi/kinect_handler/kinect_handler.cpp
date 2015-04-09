@@ -1,74 +1,24 @@
-#include "crowd_detector.h"
-#include "blob_tracker.h"
 #include "my_freenect_device.h"
-//#include "libfreenect/libfreenect.hpp"
-#include <iostream>
-#include <vector>
-//#include <cmath>
-#include <opencv2/opencv.hpp>
-#include <cstdio>
-
-#define MIN_FACES 1
-#define MAX_DEPTH 123
-#define DIS 1
-#define SCALE 2
-#define WIDTH 640
-#define HEIGHT 480
-#define SWIDTH (WIDTH/SCALE)
-#define SHEIGHT (HEIGHT/SCALE)
-#define DWIDTH 1280
-#define DHEIGHT 720
 
 int main(int argc, char **argv) {
-	bool die = false;
-	cv::Mat rgbMatb(cv::Size(WIDTH, HEIGHT), CV_8UC3);
-	cv::Mat depthMatb(cv::Size(WIDTH, HEIGHT),CV_16UC1);
-
 	Freenect::Freenect freenect;
 	MyFreenectDevice& device = freenect.createDevice<MyFreenectDevice>(0);
+	device.start();
+	/*
 
 #if DIS
 	cv::namedWindow("display",CV_WINDOW_AUTOSIZE);
 	cv::namedWindow("mask",CV_WINDOW_AUTOSIZE);
 #endif
-	device.startVideo();
-	device.startDepth();
-	cv::Mat K = cv::Mat::zeros(3, 3, CV_64F);
-	K.at<double>(0,0) = 517.05;
-	K.at<double>(1,1) = 517.02;
-	K.at<double>(0,2) = 324.18;
-	K.at<double>(1,2) = 262.17;
-	K.at<double>(2,2) = 1.0;
-	cv::Mat K1 = cv::Mat::zeros(3, 3, CV_64F);
-	cv::Mat K2 = cv::Mat::zeros(3, 3, CV_64F);
-	cv::Mat K3 = cv::Mat::zeros(3, 3, CV_64F);
-	K1.at<double>(0,0) = 1;
-	K1.at<double>(1,1) = 1;
-	K1.at<double>(0,2) = -(SWIDTH/2);
-	K1.at<double>(1,2) = -(SHEIGHT/2);
-	K1.at<double>(2,2) = 1.0;
-	K2.at<double>(0,0) = SCALE;
-	K2.at<double>(1,1) = SCALE;
-	K2.at<double>(2,2) = 1.0;
-	K3.at<double>(0,0) = 1;
-	K3.at<double>(1,1) = 1;
-	K3.at<double>(0,2) = 320;
-	K3.at<double>(1,2) = 240;
-	K3.at<double>(2,2) = 1.0;
-	cv::Mat scale_mat = cv::Mat::zeros(3, 3, CV_64F);
-	scale_mat = K3*K2*K1;
-
-
-
-	BlobTracker tracker(SCALE);
 	CrowdDetector detector(MIN_FACES,MAX_DEPTH,SCALE);
 	cv::Mat rgbMat,depthMat;
 
 	while (!die) {
 		device.getVideo(rgbMatb);
-		cv::resize(rgbMatb,rgbMat, cv::Size(SWIDTH,SHEIGHT));
+		//cv::resize(rgbMatb,rgbMat, cv::Size(SWIDTH,SHEIGHT));
+		cv::pyrDown(rgbMatb,rgbMat, cv::Size(SWIDTH,SHEIGHT));
 		device.getDepth(depthMatb);
-		cv::resize(depthMatb,depthMat, cv::Size(SWIDTH,SHEIGHT));
+		//cv::resize(depthMatb,depthMat, cv::Size(SWIDTH,SHEIGHT));
 #if DIS
 		cv::Mat display;
 		rgbMat.copyTo(display);
@@ -93,7 +43,7 @@ int main(int argc, char **argv) {
 		}
 		cv::Point crowd_centroid;
 		std::vector<cv::Point> faces;
-		if (detector.detectCrowd(depthMat,rgbMat,&crowd_centroid, faces)) {
+		if (detector.detectCrowd(rgbMat,&crowd_centroid, faces)) {
 #if DIS
 			for (int i = 0; i < faces.size(); i++) {
 				cv::circle(display, faces[i], 20/SCALE, CV_RGB(255,255,0));
@@ -106,34 +56,11 @@ int main(int argc, char **argv) {
 			centroid_direction.at<double>(2,0) = 1.0;
 			cv::Mat cent_vec = K.inv()*scale_mat*centroid_direction;
 			cent_vec = cent_vec/cv::norm(cent_vec);
-			std::cout << "C: " << cent_vec.at<double>(0,0) << "," << cent_vec.at<double>(1,0) << "," << cent_vec.at<double>(2,0) << "," << depthMat.at<unsigned short>(crowd_centroid.y, crowd_centroid.x) << std::endl;
+			std::cout << "C: " << cent_vec.at<double>(0,0) << "," << cent_vec.at<double>(1,0) << "," << cent_vec.at<double>(2,0) << "," << depthMatb.at<unsigned short>(RESCALE_Y(crowd_centroid.y), RESCALE_X(crowd_centroid.x)) << std::endl;
 		}
-
-#if DIS
-		cv::Mat im_display;
-		cv::Mat im_mask;
-		cv::resize(display,im_display,cv::Size(DWIDTH,DHEIGHT));
-		cv::resize(mask,im_mask,cv::Size(DWIDTH,DHEIGHT));
-		cv::imshow("display", im_display);
-		cv::imshow("mask", im_mask);
-#endif
-		cv::Mat leader_direction(3,1,CV_64F);
-		leader_direction.at<double>(0,0) = blob_centroid.x;
-		leader_direction.at<double>(1,0) = blob_centroid.y;
-		leader_direction.at<double>(2,0) = 1.0;
-		cv::Mat lead_vec = K.inv()*scale_mat*leader_direction;
-		lead_vec = lead_vec/cv::norm(lead_vec);
-		if (predicted) {
-			std::cout << "P: " << lead_vec.at<double>(0,0) << "," << lead_vec.at<double>(1,0) << "," << lead_vec.at<double>(2,0) << "," << depthMat.at<unsigned short>(blob_centroid.y, blob_centroid.x)<< std::endl;
-		} else {
-			std::cout << "O: " << lead_vec.at<double>(0,0) << "," << lead_vec.at<double>(1,0) << "," << lead_vec.at<double>(2,0) << "," << depthMat.at<unsigned short>(blob_centroid.y, blob_centroid.x)<< std::endl;
-		}
-
-		char k = cv::waitKey(5);
 	}
-
-	device.stopVideo();
-	device.stopDepth();
+	*/
 	return 0;
+
 }
 

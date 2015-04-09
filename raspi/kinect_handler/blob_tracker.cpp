@@ -61,33 +61,23 @@ void BlobTracker::observe(Eigen::Vector2d point) {
 }
 bool BlobTracker::detect_leader(const cv::Mat& rgb, cv::Mat& mm, cv::Point* centroid) {
 	cv::Mat rr;
-	cv::blur(rgb, rr, cv::Size(11,11));
-	cv::blur(rr, rr, cv::Size(11,11));
+	cv::cvtColor(rgb, rr, CV_RGB2HSV);
 	cv::blur(rr, rr, cv::Size(11,11));
 	mm = cv::Mat(rgb.rows, rgb.cols, CV_8U);
-
-	double sum_x = 0;
-	double sum_y = 0;
-	double total = 0;
-	for (int y = 0; y < rr.rows; y++) {
-		for (int x = 0; x < rr.cols; x++) {
-			cv::Point3_<uchar>* p = rr.ptr<cv::Point3_<uchar> >(y,x);
-			double xp = (double)p->x;
-			double yp = (double)p->y;
-			double zp = (double)p->z;
-			if (yp - xp >= 15.0 && zp - xp >= 15.0 && fabs(yp/zp - 1.0) <= 0.40) {
-				mm.at<uchar>(y,x) = 255;
-				total += 1;
-				sum_x += x;
-				sum_y += y;
-			} else {
-				mm.at<uchar>(y,x) = 0;
-			}
-		}
+	cv::inRange(rr,cv::Scalar(37, 105,0), cv::Scalar(45,140,255),mm);
+	cv::Moments m=cv::moments(mm, true);
+	double area = m.m00;
+	double c_x = m.m10/m.m00;
+	double c_y = m.m01/m.m00;
+	if (area >= 1000/(scale*scale)) {
+	    centroid->x = c_x;
+	    centroid->y = c_y;
+	    return true;
+	} else {
+	    centroid->x = 320;
+	    centroid->y = 240;
+	    return false;
 	}
-	centroid->x = sum_x/total;
-	centroid->y = sum_y/total;
-	return total >= 1000/(scale*scale);
 }
 Eigen::Matrix<double, 4, 4> BlobTracker::makeF(double dt) {
 	Eigen::Matrix<double,4,4> F;
