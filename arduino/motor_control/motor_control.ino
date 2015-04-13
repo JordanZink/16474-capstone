@@ -7,6 +7,7 @@
 #import "smoothed_values.h"
 #import "joystick.h"
 #import "kiwi_drive.h"
+#import "ir_array.h"
 
 /*
 
@@ -40,31 +41,14 @@ static const int NUM_IR_SENSORS = 6;
 
 static const int IR_PINS[NUM_IR_SENSORS] = {2, 3, 4, 5, 6, 7};
 
-//these are the vectors the repulsion will be applied in
+//these are the directions the ir sensors point in
 const static Vector IR_VECTORS[NUM_IR_SENSORS] = {
-  Vector(0, -1),
-  Vector(sqrt(3) / 2.0f, -0.5f),
-  Vector(sqrt(3) / 2.0f, 0.5f),
   Vector(0, 1),
   Vector(-sqrt(3) / 2.0f, 0.5f),
   Vector(-sqrt(3) / 2.0f, -0.5f),
-};
-
-static const int IR_VALUE_MIN = 50;
-static const int IR_VALUE_MAX = 550;
-
-//where 1 means full power
-static const double MAX_IR_REPULSION = 0.85;
-
-static const int NUM_VALUES_FOR_IR_SMOOTHED_VALUES = 50;
-
-static SmoothedValues irSmoothedValues[NUM_IR_SENSORS] = {
-  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES, IR_VALUE_MAX),
-  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES, IR_VALUE_MAX),
-  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES, IR_VALUE_MAX),
-  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES, IR_VALUE_MAX),
-  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES, IR_VALUE_MAX),
-  SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES, IR_VALUE_MAX),
+  Vector(0, -1),
+  Vector(sqrt(3) / 2.0f, -0.5f),
+  Vector(sqrt(3) / 2.0f, 0.5f),
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -72,11 +56,13 @@ static SmoothedValues irSmoothedValues[NUM_IR_SENSORS] = {
 ////////////////////////////////////////////////////////////////////////////////
 
 static KiwiDrive kiwiDrive(PIN_WHEEL_NORTH, PIN_WHEEL_SOUTH_WEST, PIN_WHEEL_SOUTH_EAST);
-static Joystick joystick(PIN_JOYSTICK_X, PIN_JOYSTICK_Y);
+static Joystick joystick(PIN_JOYSTICK_X, PIN_JOYSTICK_Y, JOYSTICK_INPUT_NO_ROTATION);
+static IrArray irSensors(NUM_IR_SENSORS, IR_PINS, IR_VECTORS);
 
 void setup() {
   kiwiDrive.setup();
   joystick.setup();
+  irSensors.setup();
   Serial.begin(9600);
 }
 
@@ -84,39 +70,14 @@ void setup() {
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-
-Vector getIrVector() {
-  Vector resultVector(0.0f, 0.0f);
-  /*
-  for (int i = 0; i < NUM_IR_SENSORS; i++) {
-    if (i == 3) {continue;} //because that sensor is broken right now
-    int rawVal = analogRead(IR_PINS[i]);
-    irSmoothedValues[i].addValue(rawVal);
-    int val = irSmoothedValues[i].getSmoothedValue();
-    val = constrain(val, IR_VALUE_MIN, IR_VALUE_MAX);
-    float mag = ((pow(val, 2) - pow(IR_VALUE_MIN, 2)) / pow(IR_VALUE_MAX - IR_VALUE_MIN, 2)) * MAX_IR_REPULSION; //quadratic
-    //float mag = ((((float) val) - IR_VALUE_MIN) / (IR_VALUE_MAX - IR_VALUE_MIN)) * MAX_IR_REPULSION; //linear
-    Vector curVector(IR_VECTORS[i]);
-    curVector.normalize();
-    curVector.mult(mag);
-    resultVector.add(curVector);
-  }
-  */
-  return resultVector;
-}
-
 void joystickControlLoop() {
   MovementControl movementControl;
-  //struct WheelPower wp;
-
   joystick.readToMovementControl(movementControl);
-  Vector irVector = getIrVector();
+  Vector irVector = irSensors.getRepulsionVector();
   movementControl.xyVector.add(irVector);
   if (movementControl.xyVector.getMagnitude() > 1.0f) {
     movementControl.xyVector.normalize();
   }
-  //convertMotorVectorToWheelPower(movementControl, wp);
-  //sendWheelPower(wp);
   kiwiDrive.applyMovementControl(movementControl);
 
   delay(2);
@@ -160,26 +121,17 @@ void applyLastCommandedMovementControl() {
   movementControl.xyVector = Vector(lastCommandedMovementControl.xyVector);
   movementControl.rotation = lastCommandedMovementControl.rotation;
   if (useIr == true) {
-    Vector irVector = getIrVector();
+    Vector irVector = irSensors.getRepulsionVector();
     movementControl.xyVector.add(irVector);
   }
   if (movementControl.xyVector.getMagnitude() > 1.0f) {
     movementControl.xyVector.normalize();
   }
-  //struct WheelPower wp;
-  //convertMotorVectorToWheelPower(movementControl, wp);
-  //sendWheelPower(wp);
   kiwiDrive.applyMovementControl(movementControl);
 }
 
 void stopMotion() {
-  MovementControl movementControl;
-  movementControl.xyVector = Vector(0.0f, 0.0f);
-  movementControl.rotation = 0.0f;
-  //struct WheelPower wp;
-  //convertMotorVectorToWheelPower(movementControl, wp);
-  //sendWheelPower(wp);
-  kiwiDrive.applyMovementControl(movementControl);
+  kiwiDrive.applyMovementControl(ZERO_MOVEMENT_CONTROL);
 }
 
 void raspiControlLoop() {

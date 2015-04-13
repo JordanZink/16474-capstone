@@ -3,7 +3,9 @@
 #define ___TOURMAX__JOYSTICK__H___
 
 #import "Arduino.h"
+#import "assert.h"
 #import "vector.h"
+#import "movement_control.h"
 
 static const int JOYSTICK_VALUE_MIN = 0;
 static const int JOYSTICK_VALUE_MAX = 1023;
@@ -12,6 +14,11 @@ static const int JOYSTICK_VALUE_MAX = 1023;
 static const int JOYSTICK_DEAD_ZONE_PERCENT = 10;
 
 static const int NUM_VALUES_FOR_JOYSTICK_SMOOTHED_VALUES = 39;
+
+enum JoystickInputType {
+  JOYSTICK_INPUT_NO_ROTATION,
+  JOYSTICK_INPUT_X_FOR_ROTATION
+};
 
 class Joystick {
   
@@ -23,7 +30,9 @@ private:
   SmoothedValues joystickXSmoothed;
   SmoothedValues joystickYSmoothed;
   
-  long applyDeadZone(long x, int lo, int hi, long deadValue) {
+  JoystickInputType inputType;
+  
+  static long applyDeadZone(long x, int lo, int hi, long deadValue) {
     if (lo < x && x < hi) {
       return deadValue;
     } else {
@@ -33,15 +42,20 @@ private:
 
 public:
 
-  Joystick(int xPinIn, int yPinIn) {
+  Joystick(int xPinIn, int yPinIn, JoystickInputType inputTypeIn) {
     xPin = xPinIn;
     yPin = yPinIn;
     joystickXSmoothed = SmoothedValues(NUM_VALUES_FOR_JOYSTICK_SMOOTHED_VALUES, 0);
     joystickYSmoothed = SmoothedValues(NUM_VALUES_FOR_JOYSTICK_SMOOTHED_VALUES, 0);
+    inputType = inputTypeIn;
   }
   
   void setup() {
     //nothing needed to set up for now
+  }
+  
+  void changeInputType(JoystickInputType newInputType) {
+    inputType = newInputType;
   }
   
   void readToMovementControl(MovementControl &movementControl) {
@@ -71,12 +85,18 @@ public:
       x = x * maxMagnitude / dist;
       y = y * maxMagnitude / dist;
     }
-    /*
-    movementControl.xyVector = Vector(x, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
-    movementControl.rotation = 0.0f;
-    */
-    movementControl.xyVector = Vector(0, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
-    movementControl.rotation = ((float) x) / symmetricRangeForDeadzone;
+    switch (inputType) {
+      case JOYSTICK_INPUT_NO_ROTATION:
+        movementControl.xyVector = Vector(x, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
+        movementControl.rotation = 0.0f;
+        break;
+      case JOYSTICK_INPUT_X_FOR_ROTATION:
+        movementControl.xyVector = Vector(0, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
+        movementControl.rotation = ((float) x) / symmetricRangeForDeadzone;
+        break;
+      default:
+        assert (false);
+    }
   }
   
 };

@@ -9,4 +9,9 @@ typedef struct {
   float rotation;
 } MovementControl;
 
+static const MovementControl ZERO_MOVEMENT_CONTROL = {
+  Vector(0.0f, 0.0f),
+  0.0f
+};
+
 #endif /* ___TOURMAX__MOVEMENT__CONTROL__H___ */

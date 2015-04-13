@@ -29,7 +29,7 @@ private:
   SmoothedValues wheelSouthWestSmoothed;
   SmoothedValues wheelSouthEastSmoothed;
 
-  int convertValueInLinearRangeToMotorPower(int val, int rangeMin, int rangeMax) {
+  static int convertValueInLinearRangeToMotorPower(int val, int rangeMin, int rangeMax) {
     int rangeMiddle = (rangeMin + rangeMax) / 2;
     if (val < rangeMiddle) {
       //reverse
@@ -48,7 +48,7 @@ private:
   //http://stackoverflow.com/questions/3748037/how-to-control-a-kiwi-drive-robot
 
   //assumes the vector has a magnitude of 1 for full power
-  void convertMotorVectorToWheelPower(MovementControl &movementControl,
+  void convertMotorVectorToWheelPower(const MovementControl &movementControl,
                                       int &north, int &southWest, int &southEast) {
     //const int actualWheelValueMax = WHEEL_VALUE_MAX; // ((int) (WHEEL_VALUE_MAX / ((sqrt(3) + 1) / 2)));
     Vector xyVector = movementControl.xyVector;
@@ -109,7 +109,7 @@ public:
     pinMode(southEastPin, OUTPUT);
   }
 
-  void applyMovementControl(MovementControl &movementControl) {
+  void applyMovementControl(const MovementControl &movementControl) {
     int north, southWest, southEast;
     convertMotorVectorToWheelPower(movementControl, north, southWest, southEast);
     sendWheelPowers(north, southWest, southEast);

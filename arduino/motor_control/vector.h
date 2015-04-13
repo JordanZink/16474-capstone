@@ -4,17 +4,18 @@
 
 #include "math.h"
 
-static inline int mapFloat(float val, float loIn, float hiIn, int loOut, int hiOut) {
-  float inRange = hiIn - loIn;
-  int outRange = hiOut - loOut;
-  return (int) (loOut + (((val - loIn) / inRange) * outRange));
-}
-
 class Vector {
   
 private:
+
   float x;
   float y;
+
+  static inline int mapFloat(float val, float loIn, float hiIn, int loOut, int hiOut) {
+    float inRange = hiIn - loIn;
+    int outRange = hiOut - loOut;
+    return (int) (loOut + (((val - loIn) / inRange) * outRange));
+  }
   
 public:
   
