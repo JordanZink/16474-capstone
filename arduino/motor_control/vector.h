@@ -1,4 +1,7 @@
 
+#ifndef ___TOURMAX__VECTOR__H___
+#define ___TOURMAX__VECTOR__H___
+
 #include "math.h"
 
 static inline int mapFloat(float val, float loIn, float hiIn, int loOut, int hiOut) {
@@ -71,4 +74,6 @@ public:
   }
   
 };
+
+#endif /* ___TOURMAX__VECTOR__H___ */
 

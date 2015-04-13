@@ -1,4 +1,6 @@
 
+#ifndef ___TOURMAX__SMOOTHED__VALUES__H___
+#define ___TOURMAX__SMOOTHED__VALUES__H___
 
 class SmoothedValues {
 
@@ -55,4 +57,6 @@ public:
   }
   
 };
+
+#endif /* ___TOURMAX__SMOOTHED__VALUES__H___ */
 
