@@ -11,13 +11,57 @@
 #define MIN_FACES 1
 #define MAX_DEPTH 123
 #define DIS 1
-#define SCALE 2
+#define SCALE 8
 #define WIDTH 640
 #define HEIGHT 480
 #define SWIDTH (WIDTH/SCALE)
 #define SHEIGHT (HEIGHT/SCALE)
-#define DWIDTH 1280
-#define DHEIGHT 720
+#define DWIDTH 640
+#define DHEIGHT 480
+
+#define RESCALE_X(xs) (((xs - (SWIDTH/2))*SCALE)+(WIDTH/2))
+#define RESCALE_Y(ys) (((ys - (SHEIGHT/2))*SCALE)+(HEIGHT/2))
+#define DISPLAY_TO_IM_X(xs) (((xs - (DWIDTH/2))/SCALE)+(SWIDTH/2))
+#define DISPLAY_TO_IM_Y(ys) (((ys - (DHEIGHT/2))/SCALE)+(SHEIGHT/2))
+
+BlobTracker tracker(SCALE);
+cv::Mat rgbMat,depthMat;
+
+static int Hmin,Smin,Vmin;
+static int Hmax,Smax,Vmax;
+
+void update_trackbars() {
+    cv::setTrackbarPos("Hmin", "display", Hmin);
+    cv::setTrackbarPos("Smin", "display", Smin);
+    cv::setTrackbarPos("Vmin", "display", Vmin);
+    cv::setTrackbarPos("Hmax", "display", Hmax);
+    cv::setTrackbarPos("Smax", "display", Smax);
+    cv::setTrackbarPos("Vmax", "display", Vmax);
+}
+
+void on_trackbar(int q, void* )
+{
+    std::cout << q << std::endl;
+    std::cout << Hmin << "," << Hmax << "," << Smin << "," << Smax << "," << Vmin << "," << Vmax << std::endl;
+    tracker.set_bounds(Hmin,Hmax,Smin,Smax,Vmin,Vmax);
+    update_trackbars();
+}
+
+void mouse_callback(int event, int x, int y, int flags, void* userdata) {
+    if (event == cv::EVENT_LBUTTONDOWN) {
+	//std::cout << x << "," << y << std::endl;
+	cv::Vec3b col = rgbMat.at<cv::Vec3b>(DISPLAY_TO_IM_X(x),DISPLAY_TO_IM_Y(y));
+	//std::cout << (int)col.val[0] << "," << (int)col.val[1] << "," << (int)col.val[2] << std::endl;
+	if (col.val[0] < Hmin) Hmin = col.val[0];
+	if (col.val[0] > Hmax) Hmax = col.val[0];
+	if (col.val[1] < Smin) Smin = col.val[1];
+	if (col.val[1] > Smax) Smax = col.val[1];
+	if (col.val[2] < Vmin) Vmin = col.val[2];
+	if (col.val[2] > Vmax) Vmax = col.val[2];
+	update_trackbars();
+	tracker.set_bounds(Hmin,Hmax,Smin,Smax,Vmin,Vmax);
+    }
+}
 
 int main(int argc, char **argv) {
 	bool die = false;
@@ -30,6 +74,20 @@ int main(int argc, char **argv) {
 #if DIS
 	cv::namedWindow("display",CV_WINDOW_AUTOSIZE);
 	cv::namedWindow("mask",CV_WINDOW_AUTOSIZE);
+	Hmin = 81;
+	Smin = 180;
+	Vmin = 196;
+	Hmax = 255;
+	Smax = 217;
+	Vmax = 255;
+	tracker.set_bounds(Hmin,Hmax,Smin,Smax,Vmin,Vmax);
+	cv::createTrackbar("Hmin", "display", &Hmin, 255, on_trackbar);
+	cv::createTrackbar("Smin", "display", &Smin, 255, on_trackbar);
+	cv::createTrackbar("Vmin", "display", &Vmin, 255, on_trackbar);
+	cv::createTrackbar("Hmax", "display", &Hmax, 255, on_trackbar);
+	cv::createTrackbar("Smax", "display", &Smax, 255, on_trackbar);
+	cv::createTrackbar("Vmax", "display", &Vmax, 255, on_trackbar);
+	cv::setMouseCallback("display", mouse_callback, NULL);
 #endif
 	device.startVideo();
 	device.startDepth();
@@ -60,15 +118,14 @@ int main(int argc, char **argv) {
 
 
 
-	BlobTracker tracker(SCALE);
 	CrowdDetector detector(MIN_FACES,MAX_DEPTH,SCALE);
-	cv::Mat rgbMat,depthMat;
 
 	while (!die) {
 		device.getVideo(rgbMatb);
 		cv::resize(rgbMatb,rgbMat, cv::Size(SWIDTH,SHEIGHT));
+		cv::cvtColor(rgbMat, rgbMat, CV_RGB2HSV);
 		device.getDepth(depthMatb);
-		cv::resize(depthMatb,depthMat, cv::Size(SWIDTH,SHEIGHT));
+		//cv::resize(depthMatb,depthMat, cv::Size(SWIDTH,SHEIGHT));
 #if DIS
 		cv::Mat display;
 		rgbMat.copyTo(display);
@@ -91,6 +148,7 @@ int main(int argc, char **argv) {
 #endif
 			predicted = true;
 		}
+		/*
 		cv::Point crowd_centroid;
 		std::vector<cv::Point> faces;
 		if (detector.detectCrowd(depthMat,rgbMat,&crowd_centroid, faces)) {
@@ -109,6 +167,7 @@ int main(int argc, char **argv) {
 			std::cout << "C: " << cent_vec.at<double>(0,0) << "," << cent_vec.at<double>(1,0) << "," << cent_vec.at<double>(2,0) << "," << depthMat.at<unsigned short>(crowd_centroid.y, crowd_centroid.x) << std::endl;
 		}
 
+		*/
 #if DIS
 		cv::Mat im_display;
 		cv::Mat im_mask;
@@ -124,9 +183,9 @@ int main(int argc, char **argv) {
 		cv::Mat lead_vec = K.inv()*scale_mat*leader_direction;
 		lead_vec = lead_vec/cv::norm(lead_vec);
 		if (predicted) {
-			std::cout << "P: " << lead_vec.at<double>(0,0) << "," << lead_vec.at<double>(1,0) << "," << lead_vec.at<double>(2,0) << "," << depthMat.at<unsigned short>(blob_centroid.y, blob_centroid.x)<< std::endl;
+			std::cout << "P: " << lead_vec.at<double>(0,0) << "," << lead_vec.at<double>(1,0) << "," << lead_vec.at<double>(2,0) << "," << depthMatb.at<unsigned short>(RESCALE_Y(blob_centroid.y), RESCALE_X(blob_centroid.x))<< std::endl;
 		} else {
-			std::cout << "O: " << lead_vec.at<double>(0,0) << "," << lead_vec.at<double>(1,0) << "," << lead_vec.at<double>(2,0) << "," << depthMat.at<unsigned short>(blob_centroid.y, blob_centroid.x)<< std::endl;
+			std::cout << "O: " << lead_vec.at<double>(0,0) << "," << lead_vec.at<double>(1,0) << "," << lead_vec.at<double>(2,0) << "," << depthMatb.at<unsigned short>(RESCALE_Y(blob_centroid.y), RESCALE_X(blob_centroid.x))<< std::endl;
 		}
 
 		char k = cv::waitKey(5);

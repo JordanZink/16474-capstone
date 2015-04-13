@@ -62,10 +62,11 @@ void BlobTracker::observe(Eigen::Vector2d point) {
 bool BlobTracker::detect_leader(const cv::Mat& rgb, cv::Mat& mm, cv::Point* centroid) {
 	cv::Mat rr;
 	cv::blur(rgb, rr, cv::Size(11,11));
-	cv::blur(rr, rr, cv::Size(11,11));
-	cv::blur(rr, rr, cv::Size(11,11));
+	//cv::blur(rr, rr, cv::Size(11,11));
+	//cv::blur(rr, rr, cv::Size(11,11));
 	mm = cv::Mat(rgb.rows, rgb.cols, CV_8U);
 
+	/*
 	double sum_x = 0;
 	double sum_y = 0;
 	double total = 0;
@@ -85,9 +86,28 @@ bool BlobTracker::detect_leader(const cv::Mat& rgb, cv::Mat& mm, cv::Point* cent
 			}
 		}
 	}
-	centroid->x = sum_x/total;
-	centroid->y = sum_y/total;
-	return total >= 1000/(scale*scale);
+	*/
+	cv::inRange(rr,min,max,mm);
+	cv::Moments m=cv::moments(mm, true);
+	double area = m.m00;
+	double c_x = m.m10/m.m00;
+	double c_y = m.m01/m.m00;
+	if (area >= 1000/(scale*scale)) {
+	    centroid->x = c_x;
+	    centroid->y = c_y;
+	    return true;
+	} else {
+	    centroid->x = 320;
+	    centroid->y = 240;
+	    return false;
+	}
+	//centroid->x = sum_x/total;
+	//centroid->y = sum_y/total;
+	//return total >= 1000/(scale*scale);
+}
+void BlobTracker::set_bounds(int Hmin, int Hmax, int Smin, int Smax, int Vmin, int Vmax) {
+    min = cv::Scalar(Hmin, Smin, Vmin);
+    max = cv::Scalar(Hmax, Smax, Vmax);
 }
 Eigen::Matrix<double, 4, 4> BlobTracker::makeF(double dt) {
 	Eigen::Matrix<double,4,4> F;
