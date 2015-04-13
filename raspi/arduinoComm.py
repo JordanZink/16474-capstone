@@ -15,7 +15,7 @@ MOTOR_CONTROL_SERIAL_CODE = 199
 class ArduinoComm(object):
     def __init__(self, serialName, serialBaud):
         self.serial = serial.Serial(serialName, serialBaud)
-	time.sleep(1)
+        time.sleep(1)
 
     @staticmethod
     def signedFloatToByte(f):
@@ -28,11 +28,13 @@ class ArduinoComm(object):
         xByte = ArduinoComm.signedFloatToByte(x)
         yByte = ArduinoComm.signedFloatToByte(y)
         rotationByte = ArduinoComm.signedFloatToByte(rotation)
+        timeoutByte = min(max(int(math.ceil(timeout / 100)), 0), 255)
         self.serial.write(chr(MOTOR_CONTROL_SERIAL_CODE))
         self.serial.write(chr(xByte))
         self.serial.write(chr(yByte))
         self.serial.write(chr(rotationByte))
-	self.serial.flush()
+        self.serial.write(chr(timeoutByte))
+        self.serial.flush()
         response = self.serial.read()
         return response == chr(ARDUINO_ACKNOWLEDGE_SERIAL_CODE)
 

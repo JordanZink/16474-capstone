@@ -1,17 +1,21 @@
 
-#include "math.h"
+#ifndef ___TOURMAX__VECTOR__H___
+#define ___TOURMAX__VECTOR__H___
 
-static inline int mapFloat(float val, float loIn, float hiIn, int loOut, int hiOut) {
-  float inRange = hiIn - loIn;
-  int outRange = hiOut - loOut;
-  return (int) (loOut + (((val - loIn) / inRange) * outRange));
-}
+#include "math.h"
 
 class Vector {
   
 private:
+
   float x;
   float y;
+
+  static inline int mapFloat(float val, float loIn, float hiIn, int loOut, int hiOut) {
+    float inRange = hiIn - loIn;
+    int outRange = hiOut - loOut;
+    return (int) (loOut + (((val - loIn) / inRange) * outRange));
+  }
   
 public:
   
@@ -71,4 +75,6 @@ public:
   }
   
 };
+
+#endif /* ___TOURMAX__VECTOR__H___ */
 
