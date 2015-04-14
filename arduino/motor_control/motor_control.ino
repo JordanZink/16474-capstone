@@ -91,7 +91,7 @@ void joystickControlLoop() {
 
 static int nextTimeoutTime = 0;
 static MovementControl lastCommandedMovementControl;
-static bool useIr = true;
+static bool useIr = false;
 
 void applyLastCommandedMovementControl() {
   MovementControl movementControl;

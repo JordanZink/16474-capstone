@@ -40,6 +40,7 @@ private:
         for (int i = 0; i < MOTOR_CONTROL_NUM_BYTES; i++) {
           consumeBuffer[consumeI + i] = rawBuffer[i];
         }
+        consumeI += MOTOR_CONTROL_NUM_BYTES;
         dropBuffer(rawBuffer, rawI, MOTOR_CONTROL_NUM_BYTES);
         rawI -= MOTOR_CONTROL_NUM_BYTES;
         return;
@@ -71,7 +72,7 @@ public:
   }
   
   bool getMovementControl(MovementControl &movementControl, int &nextTimeout) {
-    if (consumeBuffer[0] != MOTOR_CONTROL_SERIAL_CODE) {
+    if (consumeI == 0 || consumeBuffer[0] != MOTOR_CONTROL_SERIAL_CODE) {
       return false;
     }
     int xRaw = consumeBuffer[1];
