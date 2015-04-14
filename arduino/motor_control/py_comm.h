@@ -58,7 +58,7 @@ public:
     consumeI = 0;
   }
 
-  void setup() {
+  void setupThing() {
     Serial.begin(9600);
   }
   

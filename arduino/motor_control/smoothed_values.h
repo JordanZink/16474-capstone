@@ -6,54 +6,45 @@ class SmoothedValues {
 
 private:
 
-  int* values;
-  int n;
+  static const int NUM_THINGS = 47;
+
+  int values[NUM_THINGS];
   int curI;
 
 public:
 
   SmoothedValues() {
-    n = 0;
-    values = 0;
     curI = 0;
   }
   
-  SmoothedValues(int nIn, int defaultVal) {
-    //must be at least 3
-    if (nIn < 3) {
-      nIn = 3;
-    }
-    n = nIn;
-    values = new int[n];
-    for (int i = 0; i < n; i++) {
+  SmoothedValues(int defaultVal) {
+    for (int i = 0; i < NUM_THINGS; i++) {
       values[i] = defaultVal;
     }
     curI = 0;
   }
   
   ~SmoothedValues() {
-    if (values != 0) {
-      delete values;
-    }
+    //nothiing right now...
   }
   
   void addValue(int val) {
     values[curI] = val;
-    curI = (curI + 1) % n;
+    curI = (curI + 1) % NUM_THINGS;
   }
   
   int getSmoothedValue() {
     long sum = 0;
     int minVal = values[0];
     int maxVal = values[0];
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < NUM_THINGS; i++) {
       int val = values[i];
       sum += val;
       minVal = (val < minVal ? val : minVal);
       maxVal = (val > maxVal ? val : maxVal);
     }
     sum -= (minVal + maxVal);
-    return sum / (n - 2);
+    return sum / (NUM_THINGS - 2);
   }
   
 };

@@ -21,12 +21,12 @@ the x axis goes away from the robot to the west, not east.
 
 */
 
-static const int PIN_WHEEL_NORTH = 3;
-static const int PIN_WHEEL_SOUTH_WEST = 6;
+static const int PIN_WHEEL_NORTH = 6;
+static const int PIN_WHEEL_SOUTH_WEST = 7;
 static const int PIN_WHEEL_SOUTH_EAST = 5;
 
-static const int PIN_JOYSTICK_X = 0;
-static const int PIN_JOYSTICK_Y = 1;
+static const int PIN_JOYSTICK_X = 1;  //purple
+static const int PIN_JOYSTICK_Y = 0;  //white
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -57,15 +57,15 @@ const static Vector IR_VECTORS[NUM_IR_SENSORS] = {
 ////////////////////////////////////////////////////////////////////////////////
 
 static KiwiDrive kiwiDrive(PIN_WHEEL_NORTH, PIN_WHEEL_SOUTH_WEST, PIN_WHEEL_SOUTH_EAST);
-static Joystick joystick(PIN_JOYSTICK_X, PIN_JOYSTICK_Y, JOYSTICK_INPUT_NO_ROTATION);
+static Joystick joystick(PIN_JOYSTICK_X, PIN_JOYSTICK_Y, JOYSTICK_INPUT_X_FOR_ROTATION);
 static IrArray irSensors(NUM_IR_SENSORS, IR_PINS, IR_VECTORS);
 static PyComm pyComm;
 
 void setup() {
-  kiwiDrive.setup();
-  joystick.setup();
-  irSensors.setup();
-  pyComm.setup();
+  kiwiDrive.setupThing();
+  joystick.setupThing();
+  irSensors.setupThing();
+  pyComm.setupThing();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -74,13 +74,13 @@ void setup() {
 
 void joystickControlLoop() {
   MovementControl movementControl;
-  joystick.readToMovementControl(movementControl);
-  Vector irVector = irSensors.getRepulsionVector();
-  movementControl.xyVector.add(irVector);
+  joystick.readToMovementControl(&movementControl);
+  //Vector irVector = irSensors.getRepulsionVector();
+  //movementControl.xyVector.add(irVector);
   if (movementControl.xyVector.getMagnitude() > 1.0f) {
     movementControl.xyVector.normalize();
   }
-  kiwiDrive.applyMovementControl(movementControl);
+  kiwiDrive.applyMovementControl(&movementControl);
 
   delay(2);
 }
@@ -104,11 +104,11 @@ void applyLastCommandedMovementControl() {
   if (movementControl.xyVector.getMagnitude() > 1.0f) {
     movementControl.xyVector.normalize();
   }
-  kiwiDrive.applyMovementControl(movementControl);
+  kiwiDrive.applyMovementControl(&movementControl);
 }
 
 void stopMotion() {
-  kiwiDrive.applyMovementControl(ZERO_MOVEMENT_CONTROL);
+  kiwiDrive.applyMovementControl(&ZERO_MOVEMENT_CONTROL);
 }
 
 void raspiControlLoop() {

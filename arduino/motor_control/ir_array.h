@@ -13,8 +13,6 @@ static const int IR_VALUE_MAX = 550;
 //where 1 means full power
 static const double MAX_IR_REPULSION = 0.85;
 
-static const int NUM_VALUES_FOR_IR_SMOOTHED_VALUES = 50;
-
 class IrArray {
  
 private:
@@ -47,7 +45,7 @@ public:
     for (int i = 0; i < numSensors; i++) {
       sensorInfos[i].pin = sensorPinsIn[i];
       sensorInfos[i].dir = sensorDirectionsIn[i];
-      sensorInfos[i].smoothedValues = SmoothedValues(NUM_VALUES_FOR_IR_SMOOTHED_VALUES, IR_VALUE_MAX);
+      sensorInfos[i].smoothedValues = SmoothedValues(IR_VALUE_MAX);
       sensorInfos[i].weight = 1.0f;
     }
   }
@@ -56,7 +54,7 @@ public:
     delete sensorInfos;
   }
   
-  void setup() {
+  void setupThing() {
     //nothing to do right now
   }
   

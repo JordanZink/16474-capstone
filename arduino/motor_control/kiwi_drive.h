@@ -15,8 +15,6 @@ static const int WHEEL_POWER_FULL_REVERSE = 190 - (190 - 80) / 5; //80; //330;
 static const int WHEEL_POWER_NO_MOVEMENT = 190; //445;
 static const int WHEEL_POWER_FULL_FORWARD = 190 + (250 - 190) / 5; //250; //515;
 
-static const int NUM_VALUES_FOR_WHEEL_SMOOTHED_VALUES = 21;
-
 class KiwiDrive {
 
 private:
@@ -28,6 +26,9 @@ private:
   SmoothedValues wheelNorthSmoothed;
   SmoothedValues wheelSouthWestSmoothed;
   SmoothedValues wheelSouthEastSmoothed;
+  
+  int timeToStartWheels;
+  bool shouldPowerWheels;
 
   static int convertValueInLinearRangeToMotorPower(int val, int rangeMin, int rangeMax) {
     int rangeMiddle = (rangeMin + rangeMax) / 2;
@@ -48,11 +49,11 @@ private:
   //http://stackoverflow.com/questions/3748037/how-to-control-a-kiwi-drive-robot
 
   //assumes the vector has a magnitude of 1 for full power
-  void convertMotorVectorToWheelPower(const MovementControl &movementControl,
+  void convertMotorVectorToWheelPower(const MovementControl* movementControl,
                                       int &north, int &southWest, int &southEast) {
     //const int actualWheelValueMax = WHEEL_VALUE_MAX; // ((int) (WHEEL_VALUE_MAX / ((sqrt(3) + 1) / 2)));
-    Vector xyVector = movementControl.xyVector;
-    float rotation = movementControl.rotation;
+    Vector xyVector = movementControl->xyVector;
+    float rotation = movementControl->rotation;
     if (xyVector.getMagnitude() > 1.0f) {
       xyVector.normalize();
     }
@@ -81,15 +82,20 @@ private:
   }
 
   void sendWheelPowers(int north, int southWest, int southEast) {
+    //north = convertValueInLinearRangeToMotorPower(25, -256, 256);
+    //southWest = convertValueInLinearRangeToMotorPower(25, -256, 256);
+    //southEast = convertValueInLinearRangeToMotorPower(25, -256, 256);
     wheelNorthSmoothed.addValue(north);
     wheelSouthWestSmoothed.addValue(southWest);
     wheelSouthEastSmoothed.addValue(southEast);
     int wheelNorth = wheelNorthSmoothed.getSmoothedValue();
     int wheelSouthWest = wheelSouthWestSmoothed.getSmoothedValue();
     int wheelSouthEast = wheelSouthEastSmoothed.getSmoothedValue();
-    analogWrite(northPin, wheelNorth);
-    analogWrite(southWestPin, wheelSouthWest);
-    analogWrite(southEastPin, wheelSouthEast);
+    if (shouldPowerWheels) {
+      analogWrite(northPin, wheelNorth);
+      analogWrite(southWestPin, wheelSouthWest);
+      analogWrite(southEastPin, wheelSouthEast);
+    }
   }
 
 public:
@@ -98,18 +104,23 @@ public:
     northPin = northPinIn;
     southWestPin = southWestPinIn;
     southEastPin = southEastPinIn;
-    wheelNorthSmoothed = SmoothedValues(NUM_VALUES_FOR_WHEEL_SMOOTHED_VALUES, WHEEL_POWER_NO_MOVEMENT);
-    wheelSouthWestSmoothed = SmoothedValues(NUM_VALUES_FOR_WHEEL_SMOOTHED_VALUES, WHEEL_POWER_NO_MOVEMENT);
-    wheelSouthEastSmoothed = SmoothedValues(NUM_VALUES_FOR_WHEEL_SMOOTHED_VALUES, WHEEL_POWER_NO_MOVEMENT);
+    wheelNorthSmoothed = SmoothedValues(WHEEL_POWER_NO_MOVEMENT);
+    wheelSouthWestSmoothed = SmoothedValues(WHEEL_POWER_NO_MOVEMENT);
+    wheelSouthEastSmoothed = SmoothedValues(WHEEL_POWER_NO_MOVEMENT);
+    timeToStartWheels = millis() + 1000;
+    shouldPowerWheels = false;
   }
 
-  void setup() {
+  void setupThing() {
     pinMode(northPin, OUTPUT);
     pinMode(southWestPin, OUTPUT);
     pinMode(southEastPin, OUTPUT);
   }
 
-  void applyMovementControl(const MovementControl &movementControl) {
+  void applyMovementControl(const MovementControl* movementControl) {
+    if (shouldPowerWheels == false && millis() > timeToStartWheels) {
+      shouldPowerWheels = true;
+    }
     int north, southWest, southEast;
     convertMotorVectorToWheelPower(movementControl, north, southWest, southEast);
     sendWheelPowers(north, southWest, southEast);

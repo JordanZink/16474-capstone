@@ -13,8 +13,6 @@ static const int JOYSTICK_VALUE_MAX = 1023;
 //100 implies the entire thing is dead
 static const int JOYSTICK_DEAD_ZONE_PERCENT = 10;
 
-static const int NUM_VALUES_FOR_JOYSTICK_SMOOTHED_VALUES = 39;
-
 enum JoystickInputType {
   JOYSTICK_INPUT_NO_ROTATION,
   JOYSTICK_INPUT_X_FOR_ROTATION
@@ -45,12 +43,12 @@ public:
   Joystick(int xPinIn, int yPinIn, JoystickInputType inputTypeIn) {
     xPin = xPinIn;
     yPin = yPinIn;
-    joystickXSmoothed = SmoothedValues(NUM_VALUES_FOR_JOYSTICK_SMOOTHED_VALUES, 0);
-    joystickYSmoothed = SmoothedValues(NUM_VALUES_FOR_JOYSTICK_SMOOTHED_VALUES, 0);
+    joystickXSmoothed = SmoothedValues(0);
+    joystickYSmoothed = SmoothedValues(0);
     inputType = inputTypeIn;
   }
   
-  void setup() {
+  void setupThing() {
     //nothing needed to set up for now
   }
   
@@ -58,7 +56,7 @@ public:
     inputType = newInputType;
   }
   
-  void readToMovementControl(MovementControl &movementControl) {
+  void readToMovementControl(MovementControl* movementControl) {
     int rawX = analogRead(xPin);
     int rawY = analogRead(yPin);
     joystickXSmoothed.addValue(rawX);
@@ -87,12 +85,12 @@ public:
     }
     switch (inputType) {
       case JOYSTICK_INPUT_NO_ROTATION:
-        movementControl.xyVector = Vector(x, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
-        movementControl.rotation = 0.0f;
+        movementControl->xyVector = Vector(x, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
+        movementControl->rotation = 0.0f;
         break;
       case JOYSTICK_INPUT_X_FOR_ROTATION:
-        movementControl.xyVector = Vector(0, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
-        movementControl.rotation = ((float) x) / symmetricRangeForDeadzone;
+        movementControl->xyVector = Vector(0, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
+        movementControl->rotation = ((float) x) / symmetricRangeForDeadzone;
         break;
       default:
         assert (false);
