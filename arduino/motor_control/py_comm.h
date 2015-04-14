@@ -4,6 +4,7 @@
 #import "Arduino.h"
 #import "vector.h"
 #import "movement_control.h"
+#import "buffer.h"
 
 class PyComm {
   
@@ -14,49 +15,40 @@ private:
   static const int MOTOR_CONTROL_SERIAL_CODE = 199;
   static const int MOTOR_CONTROL_NUM_BYTES = 5;
 
-  static const int BUFFER_SIZE = 64;
-  
-  int rawBuffer[BUFFER_SIZE];
-  int consumeBuffer[BUFFER_SIZE];
-  int rawI;
-  int consumeI;
-  
-  static void dropBuffer(int* buffer, int curI, int numToDrop) {
-    for (int i = numToDrop; i < curI; i++) {
-      buffer[i - numToDrop] = buffer[i];
-    }
-  }
+  Buffer rawBuffer;
+  Buffer consumeBuffer;
   
   void checkRawForCommand() {
-    if (rawI == 0) {return;}
-    switch (rawBuffer[0]) {
+    int code;
+    if (rawBuffer.peek(code) == false) {return;}
+    switch (code) {
       case MOTOR_CONTROL_SERIAL_CODE:
-        if (rawI < MOTOR_CONTROL_NUM_BYTES) {return;}
-        if (consumeI + MOTOR_CONTROL_NUM_BYTES >= BUFFER_SIZE) {
+        if (rawBuffer.getSize() < MOTOR_CONTROL_NUM_BYTES) {return;}
+        if (consumeBuffer.canAcceptNumElements(MOTOR_CONTROL_NUM_BYTES) == false) {
           Serial.write(ARDUINO_ERROR_SERIAL_CODE);
+          for (int i = 0; i < MOTOR_CONTROL_NUM_BYTES; i++) {
+            rawBuffer.drop();
+          }
           return;
         }
         Serial.write(ARDUINO_ACKNOWLEDGE_SERIAL_CODE);
         for (int i = 0; i < MOTOR_CONTROL_NUM_BYTES; i++) {
-          consumeBuffer[consumeI + i] = rawBuffer[i];
+          int v;
+          rawBuffer.get(v);
+          consumeBuffer.put(v);
         }
-        consumeI += MOTOR_CONTROL_NUM_BYTES;
-        dropBuffer(rawBuffer, rawI, MOTOR_CONTROL_NUM_BYTES);
-        rawI -= MOTOR_CONTROL_NUM_BYTES;
         return;
         
       default:
         Serial.write(ARDUINO_ERROR_SERIAL_CODE);
-        dropBuffer(rawBuffer, rawI, 1);
-        rawI -= 1;
+        rawBuffer.drop();
     }
   }
 
 public:
 
   PyComm() {
-    rawI = 0;
-    consumeI = 0;
+    //nothing right now
   }
 
   void setupThing() {
@@ -64,23 +56,24 @@ public:
   }
   
   void onTick() {
-    while (Serial.available() > 0 && rawI < BUFFER_SIZE) {
-      rawBuffer[rawI] = Serial.read();
-      rawI++;
+    while (Serial.available() > 0 && rawBuffer.isFull() == false) {
+      rawBuffer.put(Serial.read());
     }
     checkRawForCommand();
   }
   
   bool getMovementControl(MovementControl &movementControl, int &nextTimeout) {
-    if (consumeI == 0 || consumeBuffer[0] != MOTOR_CONTROL_SERIAL_CODE) {
+    int code;
+    consumeBuffer.peek(code);
+    if (consumeBuffer.isEmpty() || code != MOTOR_CONTROL_SERIAL_CODE) {
       return false;
     }
-    int xRaw = consumeBuffer[1];
-    int yRaw = consumeBuffer[2];
-    int rotationRaw = consumeBuffer[3];
-    int timeoutRaw = consumeBuffer[4];
-    dropBuffer(consumeBuffer, consumeI, MOTOR_CONTROL_NUM_BYTES);
-    consumeI -= MOTOR_CONTROL_NUM_BYTES;
+    consumeBuffer.drop();
+    int xRaw, yRaw, rotationRaw, timeoutRaw;
+    consumeBuffer.get(xRaw);
+    consumeBuffer.get(yRaw);
+    consumeBuffer.get(rotationRaw);
+    consumeBuffer.get(timeoutRaw);
     float x = (((float) xRaw) - 127) / 128;
     float y = (((float) yRaw) - 127) / 128;
     float rotation = (((float) rotationRaw) - 127) / 128;
