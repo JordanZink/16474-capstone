@@ -11,9 +11,25 @@
 //orange=445,190
 //green=515,250
 
-static const int WHEEL_POWER_FULL_REVERSE = 190 - (190 - 80) / 5; //80; //330;
-static const int WHEEL_POWER_NO_MOVEMENT = 190; //445;
-static const int WHEEL_POWER_FULL_FORWARD = 190 + (250 - 190) / 5; //250; //515;
+static const int WHEEL_POWER_ABSOLUTE_FULL_REVERSE = 80; //80; //330;
+static const int WHEEL_POWER_ABSOLUTE_NO_MOVEMENT = 190; //445;
+static const int WHEEL_POWER_ABSOLUTE_FULL_FORWARD = 250; //250; //515;
+static const float PERCENT_FULL_POWER = 0.4f;
+static const float PERCENT_ROTATION_RELATIVE_TO_LINEAR_POWER = 0.3f;
+static const float MOTOR_BIAS_CORRECTION = 0.75f;
+
+static inline int applyPercentPower(int fullPower, int noPower, float percent, bool applyWheelBias) {
+  float diff = (float) (fullPower - noPower);
+  if (applyWheelBias == true) {
+    diff *= MOTOR_BIAS_CORRECTION;
+  }
+  int diffLimited = (int) (diff * percent);
+  return noPower + diffLimited;
+}
+
+static const int WHEEL_POWER_FULL_REVERSE = applyPercentPower(WHEEL_POWER_ABSOLUTE_FULL_REVERSE, WHEEL_POWER_ABSOLUTE_NO_MOVEMENT, PERCENT_FULL_POWER, true);
+static const int WHEEL_POWER_NO_MOVEMENT = WHEEL_POWER_ABSOLUTE_NO_MOVEMENT;
+static const int WHEEL_POWER_FULL_FORWARD = applyPercentPower(WHEEL_POWER_ABSOLUTE_FULL_FORWARD, WHEEL_POWER_ABSOLUTE_NO_MOVEMENT, PERCENT_FULL_POWER, false);
 
 class KiwiDrive {
 
@@ -70,17 +86,23 @@ private:
     north *= -1;
     southWest *= -1;
     southEast *= -1;
+    //apply rotation
+    int maxRotationPower = (int) (symmetricRangeForCalc * PERCENT_ROTATION_RELATIVE_TO_LINEAR_POWER);
+    const int symmetricRangeWithRotation = symmetricRangeForCalc + maxRotationPower;
+    int rotationPower = -((int) (rotation * maxRotationPower));
+    north += rotationPower;
+    southWest += rotationPower;
+    southEast += rotationPower;
     //now, get them in the right range
-    north = convertValueInLinearRangeToMotorPower(north, -symmetricRangeForCalc, symmetricRangeForCalc);
-    southWest = convertValueInLinearRangeToMotorPower(southWest, -symmetricRangeForCalc, symmetricRangeForCalc);
-    southEast = convertValueInLinearRangeToMotorPower(southEast, -symmetricRangeForCalc, symmetricRangeForCalc);
+    north = convertValueInLinearRangeToMotorPower(north, -symmetricRangeWithRotation, symmetricRangeWithRotation);
+    southWest = convertValueInLinearRangeToMotorPower(southWest, -symmetricRangeWithRotation, symmetricRangeWithRotation);
+    southEast = convertValueInLinearRangeToMotorPower(southEast, -symmetricRangeWithRotation, symmetricRangeWithRotation);
+    /*
     //THEN, APPLY ROTATION...I GUESS???
     int maxRot = -5;
     if (rotation > 0) {maxRot = -8;}
     int rotationPower = ((int) (maxRot * rotation));
-    north += rotationPower;
-    southWest += rotationPower;
-    southEast += rotationPower;
+    */
   }
 
   void sendWheelPowers(int north, int southWest, int southEast) {

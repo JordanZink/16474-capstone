@@ -58,13 +58,14 @@ public:
   }
   
   void readToMovementControl(MovementControl* movementControl) {
-    /*
+    /**/
     int rawX = analogRead(xPin);
     int rawY = analogRead(yPin);
     joystickXSmoothed.addValue(rawX);
     joystickYSmoothed.addValue(rawY);
-    */
+    /**/
     
+    /*
     static const int REQ_NUM = 120;
     static const int RESP_BEGIN = 121;
     static const int SUCCESS = 122;
@@ -95,8 +96,7 @@ public:
       joystickXSmoothed.addValue(rawX);
       joystickYSmoothed.addValue(rawY);
     }
-    
-    
+    */
     
     long x = joystickXSmoothed.getSmoothedValue();
     long y = joystickYSmoothed.getSmoothedValue();
