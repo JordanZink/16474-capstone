@@ -75,7 +75,9 @@ private:
     southWest = convertValueInLinearRangeToMotorPower(southWest, -symmetricRangeForCalc, symmetricRangeForCalc);
     southEast = convertValueInLinearRangeToMotorPower(southEast, -symmetricRangeForCalc, symmetricRangeForCalc);
     //THEN, APPLY ROTATION...I GUESS???
-    int rotationPower = ((int) (-10 * rotation));
+    int maxRot = -5;
+    if (rotation > 0) {maxRot = -8;}
+    int rotationPower = ((int) (maxRot * rotation));
     north += rotationPower;
     southWest += rotationPower;
     southEast += rotationPower;

@@ -50,6 +50,7 @@ public:
   
   void setupThing() {
     //nothing needed to set up for now
+    Serial1.begin(9600);
   }
   
   void changeInputType(JoystickInputType newInputType) {
@@ -57,10 +58,46 @@ public:
   }
   
   void readToMovementControl(MovementControl* movementControl) {
+    /*
     int rawX = analogRead(xPin);
     int rawY = analogRead(yPin);
     joystickXSmoothed.addValue(rawX);
     joystickYSmoothed.addValue(rawY);
+    */
+    
+    static const int REQ_NUM = 120;
+    static const int RESP_BEGIN = 121;
+    static const int SUCCESS = 122;
+
+    Serial1.flush();
+    Serial1.write(REQ_NUM);
+    Serial1.flush();
+    int sentinal = 0;
+    while (sentinal < 5000 && Serial1.available() == 0) {sentinal++;}
+    int rawX, rawY;
+    if (sentinal >= 5000) {
+      Serial.write("sentinal");
+      rawX = 512;
+      rawY = 512;
+    } else {
+      int resp = Serial1.read();
+      while(Serial1.available() == 0) {}
+      int xFOOEY = Serial1.read();
+      while(Serial1.available() == 0) {}
+      int yFOOEY = Serial1.read();
+      Serial1.write(SUCCESS);
+      Serial.println(xFOOEY);
+      Serial.println(yFOOEY);
+      rawX = xFOOEY * 4;
+      rawY = yFOOEY * 4;
+    }
+    for (int i = 0; i < 40; i++) {
+      joystickXSmoothed.addValue(rawX);
+      joystickYSmoothed.addValue(rawY);
+    }
+    
+    
+    
     long x = joystickXSmoothed.getSmoothedValue();
     long y = joystickYSmoothed.getSmoothedValue();
     const int symmetricRangeForDeadzone = 256;
