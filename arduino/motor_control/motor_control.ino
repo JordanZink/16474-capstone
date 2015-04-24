@@ -42,7 +42,7 @@ static const int NUM_IR_SENSORS = 6;
 
 static const int IR_PINS[NUM_IR_SENSORS] = {3, 4, 7, 6, 5, 2}; //{2, 3, 4, 5, 6, 7};
 
-static const bool IR_ENABLED[NUM_IR_SENSORS] = {false, true, true, false, true, true};
+static const bool IR_ENABLED[NUM_IR_SENSORS] = {true, true, true, true, true, true};
 
 //these are the directions the ir sensors point in
 const static Vector IR_VECTORS[NUM_IR_SENSORS] = {
@@ -77,8 +77,8 @@ void setup() {
 void joystickControlLoop() {
   MovementControl movementControl;
   joystick.readToMovementControl(&movementControl);
-  Vector irVector = irSensors.getRepulsionVector();
-  movementControl.xyVector.add(irVector);
+  //Vector irVector = irSensors.getRepulsionVector();
+  //movementControl.xyVector.add(irVector);
   if (movementControl.xyVector.getMagnitude() > 1.0f) {
     movementControl.xyVector.normalize();
   }
