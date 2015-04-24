@@ -15,8 +15,8 @@ static const int WHEEL_POWER_ABSOLUTE_FULL_REVERSE = 80; //80; //330;
 static const int WHEEL_POWER_ABSOLUTE_NO_MOVEMENT = 190; //445;
 static const int WHEEL_POWER_ABSOLUTE_FULL_FORWARD = 250; //250; //515;
 static const float PERCENT_FULL_POWER = 0.4f;
-static const float PERCENT_ROTATION_RELATIVE_TO_LINEAR_POWER = 0.3f;
-static const float MOTOR_BIAS_CORRECTION = 0.75f;
+static const float PERCENT_ROTATION_RELATIVE_TO_LINEAR_POWER = 0.25f;
+static const float MOTOR_BIAS_CORRECTION = 0.70f;
 
 static inline int applyPercentPower(int fullPower, int noPower, float percent, bool applyWheelBias) {
   float diff = (float) (fullPower - noPower);

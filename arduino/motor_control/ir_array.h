@@ -11,7 +11,7 @@ static const int IR_VALUE_MIN = 50;
 static const int IR_VALUE_MAX = 550;
 
 //where 1 means full power
-static const double MAX_IR_REPULSION = 0.85;
+static const double MAX_IR_REPULSION = 0.7;
 
 class IrArray {
  
@@ -22,6 +22,7 @@ private:
     Vector dir;
     SmoothedValues smoothedValues;
     float weight;
+    bool enabled;
   };
 
   int numSensors;
@@ -39,7 +40,7 @@ private:
   
 public:
 
-  IrArray(const int numSensorsIn, const int* sensorPinsIn, const Vector* sensorDirectionsIn) {
+  IrArray(const int numSensorsIn, const int* sensorPinsIn, const Vector* sensorDirectionsIn, const bool* sensorEnabledIn) {
     numSensors = numSensorsIn;
     sensorInfos = new struct SensorInfo[numSensorsIn];
     for (int i = 0; i < numSensors; i++) {
@@ -47,6 +48,7 @@ public:
       sensorInfos[i].dir = sensorDirectionsIn[i];
       sensorInfos[i].smoothedValues = SmoothedValues(IR_VALUE_MAX);
       sensorInfos[i].weight = 1.0f;
+      sensorInfos[i].enabled = sensorEnabledIn[i];
     }
   }
   
@@ -62,7 +64,12 @@ public:
     Vector resultVector(0.0f, 0.0f);
     for (int i = 0; i < numSensors; i++) {
       struct SensorInfo* info = &(sensorInfos[i]);
-      int rawVal = analogRead(info->pin);
+      int rawVal;
+      if (info->enabled == false) {
+        rawVal = IR_VALUE_MIN;
+      } else {
+        rawVal = analogRead(info->pin);
+      }
       info->smoothedValues.addValue(rawVal);
       int val = info->smoothedValues.getSmoothedValue();
       val = constrain(val, IR_VALUE_MIN, IR_VALUE_MAX);
@@ -71,7 +78,7 @@ public:
       mag *= info->weight;
       Vector curVector(info->dir);
       curVector.normalize();
-      curVector.mult(-mag);
+      curVector.mult(mag);
       resultVector.add(curVector);
     }
     return resultVector;

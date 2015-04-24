@@ -40,16 +40,18 @@ the north ir sensor should be the 0th index, with the rest going in clockwise or
 
 static const int NUM_IR_SENSORS = 6;
 
-static const int IR_PINS[NUM_IR_SENSORS] = {2, 3, 4, 5, 6, 7};
+static const int IR_PINS[NUM_IR_SENSORS] = {3, 4, 7, 6, 5, 2}; //{2, 3, 4, 5, 6, 7};
+
+static const bool IR_ENABLED[NUM_IR_SENSORS] = {false, true, true, false, true, true};
 
 //these are the directions the ir sensors point in
 const static Vector IR_VECTORS[NUM_IR_SENSORS] = {
   Vector(0, 1),
-  Vector(-sqrt(3) / 2.0f, 0.5f),
-  Vector(-sqrt(3) / 2.0f, -0.5f),
-  Vector(0, -1),
-  Vector(sqrt(3) / 2.0f, -0.5f),
   Vector(sqrt(3) / 2.0f, 0.5f),
+  Vector(sqrt(3) / 2.0f, -0.5f),
+  Vector(0, -1),
+  Vector(-sqrt(3) / 2.0f, -0.5f),
+  Vector(-sqrt(3) / 2.0f, 0.5f),
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -58,7 +60,7 @@ const static Vector IR_VECTORS[NUM_IR_SENSORS] = {
 
 static KiwiDrive kiwiDrive(PIN_WHEEL_NORTH, PIN_WHEEL_SOUTH_WEST, PIN_WHEEL_SOUTH_EAST);
 static Joystick joystick(PIN_JOYSTICK_X, PIN_JOYSTICK_Y, JOYSTICK_INPUT_X_FOR_ROTATION);
-static IrArray irSensors(NUM_IR_SENSORS, IR_PINS, IR_VECTORS);
+static IrArray irSensors(NUM_IR_SENSORS, IR_PINS, IR_VECTORS, IR_ENABLED);
 static PyComm pyComm;
 
 void setup() {
@@ -75,8 +77,8 @@ void setup() {
 void joystickControlLoop() {
   MovementControl movementControl;
   joystick.readToMovementControl(&movementControl);
-  //Vector irVector = irSensors.getRepulsionVector();
-  //movementControl.xyVector.add(irVector);
+  Vector irVector = irSensors.getRepulsionVector();
+  movementControl.xyVector.add(irVector);
   if (movementControl.xyVector.getMagnitude() > 1.0f) {
     movementControl.xyVector.normalize();
   }
@@ -144,6 +146,7 @@ void loop() {
   joystickControlLoop();
   //raspiControlLoop();
   //wirelessControlLoop();
+  //Serial.println(analogRead(4));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
