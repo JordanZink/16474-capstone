@@ -6,6 +6,14 @@
 #import "vector.h"
 #import "movement_control.h"
 #import "smoothed_values.h"
+#import "assert.h"
+
+// BEGIN HACK
+
+static int bigGlobalKiwiCounter = 0;
+static const int KIWI_PRINT_PERIOD = 60;
+
+// END HACK
 
 //red=330,80
 //orange=445,190
@@ -116,9 +124,18 @@ private:
     int wheelSouthWest = wheelSouthWestSmoothed.getSmoothedValue();
     int wheelSouthEast = wheelSouthEastSmoothed.getSmoothedValue();
     if (shouldPowerWheels) {
+      /*
       analogWrite(northPin, wheelNorth);
       analogWrite(southWestPin, wheelSouthWest);
       analogWrite(southEastPin, wheelSouthEast);
+      */
+      bigGlobalKiwiCounter = (bigGlobalKiwiCounter + 1) % KIWI_PRINT_PERIOD;
+      if (bigGlobalKiwiCounter == 0) {
+        char buf[32];
+        int numChars = sprintf(buf, "m %d %d %d\n\0", wheelNorth, wheelSouthWest, wheelSouthEast);
+        assert(numChars <= 32);
+        Serial.print(buf);
+      }
     }
   }
 
