@@ -24,7 +24,7 @@ void loop(){
   mySerial.write(HEADER_BYTE);
   mySerial.write(xToSend);
   mySerial.write(yToSend);
-  delay(1000);
+  delay(100);
   /*
   mySerial.write(REQ_NUM);
   while (mySerial.available() == 0) {}

@@ -9,6 +9,7 @@
 #import "kiwi_drive.h"
 #import "ir_array.h"
 #import "py_comm.h"
+#import "joystick_input.h"
 
 /*
 
@@ -59,7 +60,11 @@ const static Vector IR_VECTORS[NUM_IR_SENSORS] = {
 ////////////////////////////////////////////////////////////////////////////////
 
 static KiwiDrive kiwiDrive(PIN_WHEEL_NORTH, PIN_WHEEL_SOUTH_WEST, PIN_WHEEL_SOUTH_EAST);
-static Joystick joystick(PIN_JOYSTICK_X, PIN_JOYSTICK_Y, JOYSTICK_INPUT_X_FOR_ROTATION);
+//static DirectJoystickInput directJoystickInput(PIN_JOYSTICK_X, PIN_JOYSTICK_Y);
+//static JoystickInput* joystickInput = &directJoystickInput;
+static WirelessJoystickInput wirelessJoystickInput(PIN_JOYSTICK_X, PIN_JOYSTICK_Y);
+static JoystickInput* joystickInput = &wirelessJoystickInput;
+static Joystick joystick(joystickInput, JOYSTICK_INPUT_X_FOR_ROTATION);
 static IrArray irSensors(NUM_IR_SENSORS, IR_PINS, IR_VECTORS, IR_ENABLED);
 static PyComm pyComm;
 
@@ -138,9 +143,9 @@ void wirelessControlLoop() {
 ////////////////////////////////////////////////////////////////////////////////
 
 void loop() {
-  //joystickControlLoop();
+  joystickControlLoop();
   //raspiControlLoop();
-  wirelessControlLoop();
+  //wirelessControlLoop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

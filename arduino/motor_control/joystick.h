@@ -6,6 +6,7 @@
 #import "assert.h"
 #import "vector.h"
 #import "movement_control.h"
+#import "joystick_input.h"
 
 static const int JOYSTICK_VALUE_MIN = 0;
 static const int JOYSTICK_VALUE_MAX = 1023;
@@ -21,9 +22,8 @@ enum JoystickInputType {
 class Joystick {
   
 private:
-
-  int xPin;
-  int yPin;
+  
+  JoystickInput* joystickInput;
   
   SmoothedValues joystickXSmoothed;
   SmoothedValues joystickYSmoothed;
@@ -40,17 +40,15 @@ private:
 
 public:
 
-  Joystick(int xPinIn, int yPinIn, JoystickInputType inputTypeIn) {
-    xPin = xPinIn;
-    yPin = yPinIn;
+  Joystick(JoystickInput* joystickInputIn, JoystickInputType inputTypeIn) {
+    joystickInput = joystickInputIn;
     joystickXSmoothed = SmoothedValues(0);
     joystickYSmoothed = SmoothedValues(0);
     inputType = inputTypeIn;
   }
   
   void setupThing() {
-    //nothing needed to set up for now
-    Serial1.begin(9600);
+    joystickInput->setupThing();
   }
   
   void changeInputType(JoystickInputType newInputType) {
@@ -59,8 +57,11 @@ public:
   
   void readToMovementControl(MovementControl* movementControl) {
     /**/
-    int rawX = analogRead(xPin);
-    int rawY = analogRead(yPin);
+    //int rawX = analogRead(xPin);
+    //int rawY = analogRead(yPin);
+    int rawX, rawY;
+    bool succ = joystickInput->getCurrentXY(rawX, rawY);
+    assert (succ);
     joystickXSmoothed.addValue(rawX);
     joystickYSmoothed.addValue(rawY);
     /**/
