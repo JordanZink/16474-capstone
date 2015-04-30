@@ -66,8 +66,8 @@ const static Vector IR_VECTORS[NUM_IR_SENSORS] = {
 
 static KiwiDrive kiwiDrive(PIN_WHEEL_NORTH, PIN_WHEEL_SOUTH_WEST, PIN_WHEEL_SOUTH_EAST);
 //static ZeroJoystickInput joystickInput;
-//static DirectJoystickInput joystickInput(PIN_JOYSTICK_X, PIN_JOYSTICK_Y);
-static WirelessJoystickInput joystickInput;
+static DirectJoystickInput joystickInput(PIN_JOYSTICK_X, PIN_JOYSTICK_Y);
+//static WirelessJoystickInput joystickInput;
 static Joystick joystick(&joystickInput, JOYSTICK_INPUT_X_FOR_ROTATION);
 static IrArray irSensors(NUM_IR_SENSORS, IR_PINS, IR_VECTORS, IR_ENABLED, false);
 static PyComm pyComm;
@@ -81,67 +81,6 @@ void setup() {
   pneumatics.setupThing();
 }
 
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-/*
-void joystickControlLoop() {
-  MovementControl movementControl;
-  joystick.readToMovementControl(movementControl);
-  //Vector irVector = irSensors.getRepulsionVector();
-  //movementControl.xyVector.add(irVector);
-  if (movementControl.xyVector.getMagnitude() > 1.0f) {
-    movementControl.xyVector.normalize();
-  }
-  kiwiDrive.applyMovementControl(&movementControl);
-
-  delay(2);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-static unsigned long nextTimeoutTime = 0;
-static MovementControl lastCommandedMovementControl;
-static bool useIr = false;
-
-void applyLastCommandedMovementControl() {
-  MovementControl joystickMovementControl;
-  joystick.readToMovementControl(joystickMovementControl);
-  MovementControl movementControl;
-  movementControl.xyVector = Vector(lastCommandedMovementControl.xyVector);
-  movementControl.xyVector.add(joystickMovementControl.xyVector);
-  movementControl.rotation = lastCommandedMovementControl.rotation + joystickMovementControl.rotation;
-  //MovementControl movementControl;
-  //movementControl.xyVector = Vector(lastCommandedMovementControl.xyVector;
-  //movementControl.rotation = lastCommandedMovementControl.rotation;
-  if (useIr == true) {
-    Vector irVector = irSensors.getRepulsionVector();
-    movementControl.xyVector.add(irVector);
-  }
-  if (movementControl.xyVector.getMagnitude() > 1.0f) {
-    movementControl.xyVector.normalize();
-  }
-  kiwiDrive.applyMovementControl(&movementControl);
-}
-
-void stopMotion() {
-  kiwiDrive.applyMovementControl(&ZERO_MOVEMENT_CONTROL);
-}
-
-void raspiControlLoop() {
-  pyComm.onTick();
-  pyComm.getMovementControl(lastCommandedMovementControl, nextTimeoutTime);
-  
-  bool hasTrippedWatchdog = nextTimeoutTime < millis();
-  if (hasTrippedWatchdog == false) {
-    applyLastCommandedMovementControl();
-  } else {
-    stopMotion();
-  }
-}
-*/
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -170,8 +109,6 @@ void mainControlLoop() {
 ////////////////////////////////////////////////////////////////////////////////
 
 void loop() {
-  //joystickControlLoop();
-  //raspiControlLoop();
   mainControlLoop();
 }
 

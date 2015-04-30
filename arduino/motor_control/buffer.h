@@ -55,14 +55,6 @@ public:
   
   bool peek(int &v) {
     return peek_forward(v, 0);
-    /*
-    if (isEmpty()) {
-      return false;
-    } else {
-      v = buffer[backI];
-      return true;
-    }
-    */
   }
   
   bool get(int &v) {

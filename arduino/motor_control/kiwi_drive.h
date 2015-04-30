@@ -105,18 +105,9 @@ private:
     north = convertValueInLinearRangeToMotorPower(north, -symmetricRangeWithRotation, symmetricRangeWithRotation);
     southWest = convertValueInLinearRangeToMotorPower(southWest, -symmetricRangeWithRotation, symmetricRangeWithRotation);
     southEast = convertValueInLinearRangeToMotorPower(southEast, -symmetricRangeWithRotation, symmetricRangeWithRotation);
-    /*
-    //THEN, APPLY ROTATION...I GUESS???
-    int maxRot = -5;
-    if (rotation > 0) {maxRot = -8;}
-    int rotationPower = ((int) (maxRot * rotation));
-    */
   }
 
   void sendWheelPowers(int north, int southWest, int southEast) {
-    //north = convertValueInLinearRangeToMotorPower(25, -256, 256);
-    //southWest = convertValueInLinearRangeToMotorPower(25, -256, 256);
-    //southEast = convertValueInLinearRangeToMotorPower(25, -256, 256);
     wheelNorthSmoothed.addValue(north);
     wheelSouthWestSmoothed.addValue(southWest);
     wheelSouthEastSmoothed.addValue(southEast);

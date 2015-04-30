@@ -89,14 +89,6 @@ public:
     checkRawForCommand();
   }
   
-  /*
-  bool getMovementControl(MovementControl &movementControl, unsigned long &nextTimeout) {
-    movementControl.xyVector = Vector(lastX, lastY);
-    movementControl.rotation = lastRotation;
-    nextTimeout = lastTimeout;
-  }
-  */
-  
   void readToMovementControl(MovementControl &movementControl) {
     bool hasTimedout = nextTimeout < millis();
     if (hasTimedout == false) {

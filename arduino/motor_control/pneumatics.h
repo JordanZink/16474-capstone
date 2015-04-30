@@ -11,6 +11,8 @@ private:
 
   int valvePin;
   float targetMillibars;
+  unsigned long nextToggle;
+  bool curState;
   
   LPS331 pressureSensor;
   
@@ -24,6 +26,8 @@ public:
   Pneumatics(int valvePinIn, float targetPsi) {
     valvePin = valvePinIn;
     targetMillibars = convertPsiToMillibars(targetPsi);
+    nextToggle = 0;
+    curState = false;
   }
   
   void setupThing() {
@@ -34,7 +38,11 @@ public:
   }
   
   void onTick() {
-    //nothing right now
+    if (millis() > nextToggle) {
+      curState = !curState;
+      //digitalWrite(valvePin, (curState ? HIGH : LOW));
+      nextToggle = millis() + 1000;
+    }
   }
   
 };
