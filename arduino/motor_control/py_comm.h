@@ -19,10 +19,10 @@ private:
 
   Buffer rawBuffer;
   
-  float lastX;
-  float lastY;
-  float lastRotation;
-  unsigned long lastTimeout;
+  float x;
+  float y;
+  float rotation;
+  unsigned long nextTimeout;
   
   bool eatRawBufferUntilHeader() {
     int curByte;
@@ -42,10 +42,10 @@ private:
     rawBuffer.get(yRaw);
     rawBuffer.get(rotationRaw);
     rawBuffer.get(timeoutRaw);
-    lastX = (((float) xRaw) - 127) / 128;
-    lastY = (((float) yRaw) - 127) / 128;
-    lastRotation = (((float) rotationRaw) - 127) / 128;
-    lastTimeout = millis() + (timeoutRaw * 100);
+    x = (((float) xRaw) - 127) / 128;
+    y = (((float) yRaw) - 127) / 128;
+    rotation = (((float) rotationRaw) - 127) / 128;
+    nextTimeout = millis() + (timeoutRaw * 100);
   }
   
   void checkRawForCommand() {
@@ -71,10 +71,10 @@ private:
 public:
 
   PyComm() {
-    lastX = 0.0f;
-    lastY = 0.0f;
-    lastRotation = 0.0f;
-    lastTimeout = 0;
+    x = 0.0f;
+    y = 0.0f;
+    rotation = 0.0f;
+    nextTimeout = 0;
   }
 
   void setupThing() {
@@ -89,10 +89,23 @@ public:
     checkRawForCommand();
   }
   
+  /*
   bool getMovementControl(MovementControl &movementControl, unsigned long &nextTimeout) {
     movementControl.xyVector = Vector(lastX, lastY);
     movementControl.rotation = lastRotation;
     nextTimeout = lastTimeout;
+  }
+  */
+  
+  void readToMovementControl(MovementControl &movementControl) {
+    bool hasTimedout = nextTimeout < millis();
+    if (hasTimedout == false) {
+      movementControl.xyVector = Vector(x, y);
+      movementControl.rotation = rotation;
+    } else {
+      movementControl.xyVector = Vector(0.0f, 0.0f);
+      movementControl.rotation = 0.0f;
+    }
   }
   
 };

@@ -2,6 +2,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <Wire.h>
+#include <LPS331.h>
 #import "vector.h"
 #import "movement_control.h"
 #import "smoothed_values.h"
@@ -10,6 +12,7 @@
 #import "ir_array.h"
 #import "py_comm.h"
 #import "joystick_input.h"
+#import "pneumatics.h"
 
 /*
 
@@ -28,6 +31,8 @@ static const int PIN_WHEEL_SOUTH_EAST = 5;
 
 static const int PIN_JOYSTICK_X = 1;  //purple
 static const int PIN_JOYSTICK_Y = 0;  //white
+
+static const int PNEUMATIC_VALVE_PIN = 12;
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -60,28 +65,29 @@ const static Vector IR_VECTORS[NUM_IR_SENSORS] = {
 ////////////////////////////////////////////////////////////////////////////////
 
 static KiwiDrive kiwiDrive(PIN_WHEEL_NORTH, PIN_WHEEL_SOUTH_WEST, PIN_WHEEL_SOUTH_EAST);
+//static ZeroJoystickInput joystickInput;
 //static DirectJoystickInput joystickInput(PIN_JOYSTICK_X, PIN_JOYSTICK_Y);
 static WirelessJoystickInput joystickInput;
 static Joystick joystick(&joystickInput, JOYSTICK_INPUT_X_FOR_ROTATION);
-static IrArray irSensors(NUM_IR_SENSORS, IR_PINS, IR_VECTORS, IR_ENABLED);
+static IrArray irSensors(NUM_IR_SENSORS, IR_PINS, IR_VECTORS, IR_ENABLED, false);
 static PyComm pyComm;
-static Pneumatics pneumatics(PNEUMATICS_SENSOR_PIN, PNEUMATIC_VALVE_PIN);
+static Pneumatics pneumatics(PNEUMATIC_VALVE_PIN, 2.0f);
 
 void setup() {
   kiwiDrive.setupThing();
   joystick.setupThing();
   irSensors.setupThing();
   pyComm.setupThing();
-  pneumatics.setupThing()
+  pneumatics.setupThing();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-
+/*
 void joystickControlLoop() {
   MovementControl movementControl;
-  joystick.readToMovementControl(&movementControl);
+  joystick.readToMovementControl(movementControl);
   //Vector irVector = irSensors.getRepulsionVector();
   //movementControl.xyVector.add(irVector);
   if (movementControl.xyVector.getMagnitude() > 1.0f) {
@@ -102,16 +108,14 @@ static bool useIr = false;
 
 void applyLastCommandedMovementControl() {
   MovementControl joystickMovementControl;
-  joystick.readToMovementControl(&joystickMovementControl);
+  joystick.readToMovementControl(joystickMovementControl);
   MovementControl movementControl;
   movementControl.xyVector = Vector(lastCommandedMovementControl.xyVector);
   movementControl.xyVector.add(joystickMovementControl.xyVector);
   movementControl.rotation = lastCommandedMovementControl.rotation + joystickMovementControl.rotation;
-  /*
-  MovementControl movementControl;
-  movementControl.xyVector = Vector(lastCommandedMovementControl.xyVector;
-  movementControl.rotation = lastCommandedMovementControl.rotation;
-  */
+  //MovementControl movementControl;
+  //movementControl.xyVector = Vector(lastCommandedMovementControl.xyVector;
+  //movementControl.rotation = lastCommandedMovementControl.rotation;
   if (useIr == true) {
     Vector irVector = irSensors.getRepulsionVector();
     movementControl.xyVector.add(irVector);
@@ -137,13 +141,28 @@ void raspiControlLoop() {
     stopMotion();
   }
 }
-
+*/
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-void wirelessControlLoop() {
-  if (Serial1.available() > 0) {Serial.println(Serial1.read());}
+void onTick() {
+  pyComm.onTick();
+  pneumatics.onTick();
+}
+
+void mainControlLoop() {
+  onTick();
+  
+  MovementControl movementControl, joystickMovementControl, pyCommMovementControl;
+  joystick.readToMovementControl(joystickMovementControl);
+  pyComm.readToMovementControl(pyCommMovementControl);
+  mergeMovementControls(movementControl, joystickMovementControl, pyCommMovementControl);
+  
+  irSensors.applyToMovementControl(movementControl);
+  getMovementControlInValidRange(movementControl);
+  
+  kiwiDrive.applyMovementControl(movementControl);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -152,8 +171,8 @@ void wirelessControlLoop() {
 
 void loop() {
   //joystickControlLoop();
-  raspiControlLoop();
-  //wirelessControlLoop();
+  //raspiControlLoop();
+  mainControlLoop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

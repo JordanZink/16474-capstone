@@ -55,7 +55,7 @@ public:
     inputType = newInputType;
   }
   
-  void readToMovementControl(MovementControl* movementControl) {
+  void readToMovementControl(MovementControl &movementControl) {
     int rawX, rawY;
     bool succ = joystickInput->getCurrentXY(rawX, rawY);
     assert (succ);
@@ -86,12 +86,12 @@ public:
     }
     switch (inputType) {
       case JOYSTICK_INPUT_NO_ROTATION:
-        movementControl->xyVector = Vector(x, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
-        movementControl->rotation = 0.0f;
+        movementControl.xyVector = Vector(x, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
+        movementControl.rotation = 0.0f;
         break;
       case JOYSTICK_INPUT_X_FOR_ROTATION:
-        movementControl->xyVector = Vector(0, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
-        movementControl->rotation = ((float) x) / symmetricRangeForDeadzone;
+        movementControl.xyVector = Vector(0, y, -symmetricRangeForDeadzone, symmetricRangeForDeadzone);
+        movementControl.rotation = ((float) x) / symmetricRangeForDeadzone;
         break;
       default:
         assert (false);

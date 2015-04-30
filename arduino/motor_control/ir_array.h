@@ -25,6 +25,7 @@ private:
     bool enabled;
   };
 
+  bool arrayEnabled;
   int numSensors;
   struct SensorInfo* sensorInfos;
   
@@ -38,30 +39,9 @@ private:
     }
   }
   
-public:
-
-  IrArray(const int numSensorsIn, const int* sensorPinsIn, const Vector* sensorDirectionsIn, const bool* sensorEnabledIn) {
-    numSensors = numSensorsIn;
-    sensorInfos = new struct SensorInfo[numSensorsIn];
-    for (int i = 0; i < numSensors; i++) {
-      sensorInfos[i].pin = sensorPinsIn[i];
-      sensorInfos[i].dir = sensorDirectionsIn[i];
-      sensorInfos[i].smoothedValues = SmoothedValues(IR_VALUE_MAX);
-      sensorInfos[i].weight = 1.0f;
-      sensorInfos[i].enabled = sensorEnabledIn[i];
-    }
-  }
-  
-  ~IrArray() {
-    delete sensorInfos;
-  }
-  
-  void setupThing() {
-    //nothing to do right now
-  }
-  
   Vector getRepulsionVector() {
     Vector resultVector(0.0f, 0.0f);
+    if (arrayEnabled == false) {return resultVector;}
     for (int i = 0; i < numSensors; i++) {
       struct SensorInfo* info = &(sensorInfos[i]);
       int rawVal;
@@ -84,12 +64,43 @@ public:
     return resultVector;
   }
   
+public:
+
+  IrArray(const int numSensorsIn, const int* sensorPinsIn, const Vector* sensorDirectionsIn, const bool* sensorEnabledIn, bool arrayEnabledIn) {
+    numSensors = numSensorsIn;
+    sensorInfos = new struct SensorInfo[numSensorsIn];
+    for (int i = 0; i < numSensors; i++) {
+      sensorInfos[i].pin = sensorPinsIn[i];
+      sensorInfos[i].dir = sensorDirectionsIn[i];
+      sensorInfos[i].smoothedValues = SmoothedValues(IR_VALUE_MAX);
+      sensorInfos[i].weight = 1.0f;
+      sensorInfos[i].enabled = sensorEnabledIn[i];
+    }
+    arrayEnabled = arrayEnabledIn;
+  }
+  
+  ~IrArray() {
+    delete sensorInfos;
+  }
+  
+  void setupThing() {
+    //nothing to do right now
+  }
+  
   float getSensorWeight(int sensorI) {
     return sensorInfos[sensorI].weight;
   }
   
   void setSensorWeight(int sensorI, float newWeight) {
     sensorInfos[sensorI].weight = constrainFloat(newWeight, 0.0f, 1.0f);
+  }
+  
+  void setArrayEnabled(bool newArrayEnabled) {
+    arrayEnabled = newArrayEnabled;
+  }
+  
+  void applyToMovementControl(MovementControl &movementControl) {
+    movementControl.xyVector.add(getRepulsionVector());
   }
   
 };

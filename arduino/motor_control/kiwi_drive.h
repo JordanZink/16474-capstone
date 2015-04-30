@@ -73,11 +73,11 @@ private:
   //http://stackoverflow.com/questions/3748037/how-to-control-a-kiwi-drive-robot
 
   //assumes the vector has a magnitude of 1 for full power
-  void convertMotorVectorToWheelPower(const MovementControl* movementControl,
+  void convertMotorVectorToWheelPower(MovementControl &movementControl,
                                       int &north, int &southWest, int &southEast) {
     //const int actualWheelValueMax = WHEEL_VALUE_MAX; // ((int) (WHEEL_VALUE_MAX / ((sqrt(3) + 1) / 2)));
-    Vector xyVector = movementControl->xyVector;
-    float rotation = movementControl->rotation;
+    Vector xyVector = movementControl.xyVector;
+    float rotation = movementControl.rotation;
     if (xyVector.getMagnitude() > 1.0f) {
       xyVector.normalize();
     }
@@ -160,7 +160,7 @@ public:
     pinMode(southEastPin, OUTPUT);
   }
 
-  void applyMovementControl(const MovementControl* movementControl) {
+  void applyMovementControl(MovementControl &movementControl) {
     if (shouldPowerWheels == false && millis() > timeToStartWheels) {
       shouldPowerWheels = true;
     }
