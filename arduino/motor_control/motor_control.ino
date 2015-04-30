@@ -65,12 +65,14 @@ static WirelessJoystickInput joystickInput;
 static Joystick joystick(&joystickInput, JOYSTICK_INPUT_X_FOR_ROTATION);
 static IrArray irSensors(NUM_IR_SENSORS, IR_PINS, IR_VECTORS, IR_ENABLED);
 static PyComm pyComm;
+static Pneumatics pneumatics(PNEUMATICS_SENSOR_PIN, PNEUMATIC_VALVE_PIN);
 
 void setup() {
   kiwiDrive.setupThing();
   joystick.setupThing();
   irSensors.setupThing();
   pyComm.setupThing();
+  pneumatics.setupThing()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -94,14 +96,22 @@ void joystickControlLoop() {
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-static int nextTimeoutTime = 0;
+static unsigned long nextTimeoutTime = 0;
 static MovementControl lastCommandedMovementControl;
 static bool useIr = false;
 
 void applyLastCommandedMovementControl() {
+  MovementControl joystickMovementControl;
+  joystick.readToMovementControl(&joystickMovementControl);
   MovementControl movementControl;
   movementControl.xyVector = Vector(lastCommandedMovementControl.xyVector);
+  movementControl.xyVector.add(joystickMovementControl.xyVector);
+  movementControl.rotation = lastCommandedMovementControl.rotation + joystickMovementControl.rotation;
+  /*
+  MovementControl movementControl;
+  movementControl.xyVector = Vector(lastCommandedMovementControl.xyVector;
   movementControl.rotation = lastCommandedMovementControl.rotation;
+  */
   if (useIr == true) {
     Vector irVector = irSensors.getRepulsionVector();
     movementControl.xyVector.add(irVector);
