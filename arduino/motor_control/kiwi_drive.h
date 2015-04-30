@@ -23,7 +23,7 @@ static const int WHEEL_POWER_ABSOLUTE_FULL_REVERSE = 80; //80; //330;
 static const int WHEEL_POWER_ABSOLUTE_NO_MOVEMENT = 190; //445;
 static const int WHEEL_POWER_ABSOLUTE_FULL_FORWARD = 250; //250; //515;
 static const float PERCENT_FULL_POWER = 0.4f;
-static const float PERCENT_ROTATION_RELATIVE_TO_LINEAR_POWER = 0.25f;
+static const float PERCENT_ROTATION_RELATIVE_TO_LINEAR_POWER = 0.55f;
 static const float MOTOR_BIAS_CORRECTION = 0.70f;
 
 static inline int applyPercentPower(int fullPower, int noPower, float percent, bool applyWheelBias) {
@@ -124,11 +124,12 @@ private:
     int wheelSouthWest = wheelSouthWestSmoothed.getSmoothedValue();
     int wheelSouthEast = wheelSouthEastSmoothed.getSmoothedValue();
     if (shouldPowerWheels) {
-      /*
+      /**/
       analogWrite(northPin, wheelNorth);
       analogWrite(southWestPin, wheelSouthWest);
       analogWrite(southEastPin, wheelSouthEast);
-      */
+      /**/
+      /*
       bigGlobalKiwiCounter = (bigGlobalKiwiCounter + 1) % KIWI_PRINT_PERIOD;
       if (bigGlobalKiwiCounter == 0) {
         char buf[32];
@@ -136,6 +137,7 @@ private:
         assert(numChars <= 32);
         Serial.print(buf);
       }
+      */
     }
   }
 

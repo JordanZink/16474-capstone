@@ -55,6 +55,8 @@ static const int WIRELESS_JOYSTICK_HEADER_BYTE = 127;
 
 static const int WIRELESS_JOYSTICK_DEAD_VALUE = 512;
 
+static const int WIRELESS_JOYSTICK_TIMEOUT_MSEC = 500;
+
 class WirelessJoystickInput : public JoystickInput {
   
 private:
@@ -63,6 +65,8 @@ private:
   
   int lastX;
   int lastY;
+  
+  int nextTimeoutTime;
 
   void handleTick() {
     while (Serial1.available()) {
@@ -82,19 +86,25 @@ private:
         rawValues.get(rawY);
         lastX = rawX * 4;
         lastY = rawY * 4;
+        nextTimeoutTime = millis() + WIRELESS_JOYSTICK_TIMEOUT_MSEC;
       }
     }
   }
   
   void checkForTimeout() {
-    //right now not implemented
+    bool hasTrippedTimeout = nextTimeoutTime < millis();
+    if (hasTrippedTimeout) {
+      lastX = WIRELESS_JOYSTICK_DEAD_VALUE;
+      lastY = WIRELESS_JOYSTICK_DEAD_VALUE;
+    }
   }
 
 public:
 
-  WirelessJoystickInput(int xigBeePin1In, int xigBeePin2In) {
+  WirelessJoystickInput() {
     lastX = WIRELESS_JOYSTICK_DEAD_VALUE;
     lastY = WIRELESS_JOYSTICK_DEAD_VALUE;
+    nextTimeoutTime = 0;
   }
   
   void setupThing() {

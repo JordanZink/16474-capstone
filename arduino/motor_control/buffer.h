@@ -44,13 +44,25 @@ public:
     return (frontI - backI + BUFFER_SIZE) % BUFFER_SIZE;
   }
   
+  bool peek_forward(int &v, int i) {
+    if (i >= getSize()) {
+      return false;
+    } else {
+      v = buffer[(backI + i) % BUFFER_SIZE];
+      return true;
+    }
+  }
+  
   bool peek(int &v) {
+    return peek_forward(v, 0);
+    /*
     if (isEmpty()) {
       return false;
     } else {
       v = buffer[backI];
       return true;
     }
+    */
   }
   
   bool get(int &v) {

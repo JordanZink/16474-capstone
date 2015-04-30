@@ -14,11 +14,48 @@ private:
   static const int ARDUINO_ERROR_SERIAL_CODE = 212;
   static const int MOTOR_CONTROL_SERIAL_CODE = 199;
   static const int MOTOR_CONTROL_NUM_BYTES = 5;
+  static const int MAGIC_HEADER = 255;
 
   Buffer rawBuffer;
   Buffer consumeBuffer;
   
+  bool eatRawBufferUntilHeader() {
+    int curByte;
+    while (rawBuffer.peek(curByte) == true) {
+      if (curByte == MAGIC_HEADER) {
+        return true;
+      }
+      rawBuffer.drop();
+    }
+    return false;
+  }
+  
   void checkRawForCommand() {
+    if (eatRawBufferUntilHeader() == false) {return;}
+    int code;
+    if (rawBuffer.peek_forward(code, 1) == false) {return;}
+    switch (code) {
+      case MOTOR_CONTROL_SERIAL_CODE:
+        if (rawBuffer.getSize() < MOTOR_CONTROL_NUM_BYTES + 1) {return;}
+        if (consumeBuffer.canAcceptNumElements(MOTOR_CONTROL_NUM_BYTES) == false) {
+          Serial.write(ARDUINO_ERROR_SERIAL_CODE);
+          rawBuffer.drop();
+          return;
+        }
+        Serial.write(ARDUINO_ACKNOWLEDGE_SERIAL_CODE);
+        rawBuffer.drop();
+        for (int i = 0; i < MOTOR_CONTROL_NUM_BYTES; i++) {
+          int v;
+          rawBuffer.get(v);
+          consumeBuffer.put(v);
+        }
+        return;
+      
+      default:
+        Serial.write(ARDUINO_ERROR_SERIAL_CODE);
+        rawBuffer.drop();
+    }
+    /*
     int code;
     if (rawBuffer.peek(code) == false) {return;}
     switch (code) {
@@ -43,6 +80,7 @@ private:
         Serial.write(ARDUINO_ERROR_SERIAL_CODE);
         rawBuffer.drop();
     }
+    */
   }
 
 public:
